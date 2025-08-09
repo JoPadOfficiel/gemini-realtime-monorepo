@@ -14,9 +14,9 @@ import { Metadata } from "next";
 import { constructMetadata, getBlurDataURL } from "@/lib/utils";
 
 interface DocPageProps {
-  params: {
+  params: Promise<{
     slug: string[];
-  };
+  }>;
 }
 
 async function getDocFromParams(params) {
@@ -28,9 +28,8 @@ async function getDocFromParams(params) {
   return doc;
 }
 
-export async function generateMetadata({
-  params,
-}: DocPageProps): Promise<Metadata> {
+export async function generateMetadata(props: DocPageProps): Promise<Metadata> {
+  const params = await props.params;
   const doc = await getDocFromParams(params);
 
   if (!doc) return {};
@@ -51,7 +50,8 @@ export async function generateStaticParams(): Promise<
   }));
 }
 
-export default async function DocPage({ params }: DocPageProps) {
+export default async function DocPage(props: DocPageProps) {
+  const params = await props.params;
   const doc = await getDocFromParams(params);
 
   if (!doc) {
