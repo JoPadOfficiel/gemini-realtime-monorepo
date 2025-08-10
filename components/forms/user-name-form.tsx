@@ -25,7 +25,7 @@ export function UserNameForm({ user }: UserNameFormProps) {
   const [isPending, startTransition] = useTransition();
   const updateUserNameWithId = updateUserName.bind(null, user.id);
 
-  const checkUpdate = (value) => {
+  const checkUpdate = (value: string) => {
     setUpdated(user.name !== value);
   };
 

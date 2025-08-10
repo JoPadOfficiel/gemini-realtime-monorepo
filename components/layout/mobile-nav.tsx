@@ -26,7 +26,7 @@ export function NavMobile() {
   };
 
   const links =
-    (selectedLayout && configMap[selectedLayout]) || marketingConfig.mainNav;
+    (selectedLayout && configMap[selectedLayout as keyof typeof configMap]) || marketingConfig.mainNav;
 
   // prevent body scroll when modal is open
   useEffect(() => {

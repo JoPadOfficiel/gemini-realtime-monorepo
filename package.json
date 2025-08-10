@@ -107,6 +107,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.6.1",
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/ms": "^2.1.0",
     "@types/node": "^24.2.1",
     "@types/react": "19.1.9",
     "@types/react-dom": "19.1.7",

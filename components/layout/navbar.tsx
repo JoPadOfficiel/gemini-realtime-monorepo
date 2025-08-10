@@ -35,7 +35,7 @@ export function NavBar({ scroll = false }: NavBarProps) {
   };
 
   const links =
-    (selectedLayout && configMap[selectedLayout]) || marketingConfig.mainNav;
+    (selectedLayout && configMap[selectedLayout as keyof typeof configMap]) || marketingConfig.mainNav;
 
   return (
     <header

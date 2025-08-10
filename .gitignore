@@ -40,4 +40,5 @@ next-env.d.ts
 /.react-email/
 
 .vscode
+.idea
 .content-collections

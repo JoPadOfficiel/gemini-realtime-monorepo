@@ -15,6 +15,22 @@ const nextConfig = {
     },
   },
 
+  // Development server configuration - allow access from network devices
+  allowedDevOrigins: [
+    // Port 3000 (primary)
+    "localhost:3000",
+    "127.0.0.1:3000",
+    "0.0.0.0:3000",
+    "192.168.1.6:3000",
+    // Keep 3001 as secondary if used
+    "localhost:3001",
+    "127.0.0.1:3001",
+    "0.0.0.0:3001",
+    "192.168.1.6:3001",
+  ],
+
+
+
   // Experimental features for Next.js 15
   experimental: {
     // Add future experimental features here

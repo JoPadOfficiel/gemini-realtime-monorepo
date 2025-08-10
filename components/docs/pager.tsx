@@ -57,8 +57,8 @@ export function getPagerForDoc(doc: Doc) {
   }
 }
 
-export function flatten(links: { items?}[]) {
-  return links.reduce((flat, link) => {
+export function flatten(links: { items?: any[] }[]): any[] {
+  return links.reduce((flat: any[], link: any) => {
     return flat.concat(link.items ? flatten(link.items) : link)
   }, [])
 }

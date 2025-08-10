@@ -17,7 +17,9 @@ export function CustomerPortalButton({
   const generateUserStripeSession = openCustomerPortal.bind(null, userStripeId);
 
   const stripeSessionAction = () =>
-    startTransition(async () => await generateUserStripeSession());
+    startTransition(() => {
+      generateUserStripeSession();
+    });
 
   return (
     <Button disabled={isPending} onClick={stripeSessionAction}>
