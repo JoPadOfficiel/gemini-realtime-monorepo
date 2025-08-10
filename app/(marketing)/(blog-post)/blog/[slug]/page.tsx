@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { allPosts } from "contentlayer/generated";
+import { allPosts } from "content-collections";
 
 import { Mdx } from "@/components/content/mdx-components";
 
@@ -77,10 +77,11 @@ export default async function PostPage(
   const toc = await getTableOfContents(post.body.raw);
 
   const [thumbnailBlurhash, images] = await Promise.all([
-    getBlurDataURL(post.image),
+    getBlurDataURL(post.image || null),
     await Promise.all(
       post.images.map(async (src: string) => ({
         src,
+        alt: "", // Default alt text
         blurDataURL: await getBlurDataURL(src),
       })),
     ),
@@ -119,7 +120,7 @@ export default async function PostPage(
           </p>
           <div className="flex flex-nowrap items-center space-x-5 pt-1 md:space-x-8">
             {post.authors.map((author) => (
-              <Author username={author} key={post._id + author} />
+              <Author username={author} key={post.slugAsParams + author} />
             ))}
           </div>
         </div>
@@ -138,11 +139,11 @@ export default async function PostPage(
               height={630}
               priority
               placeholder="blur"
-              src={post.image}
+              src={post.image || "/placeholder.jpg"}
               sizes="(max-width: 768px) 770px, 1000px"
             />
             <div className="px-[.8rem] pb-10 md:px-8">
-              <Mdx code={post.body.code} images={images} />
+              <Mdx content={post.body.raw} images={images} />
             </div>
           </div>
 

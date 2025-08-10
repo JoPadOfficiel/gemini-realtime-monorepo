@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { allPages } from "contentlayer/generated";
+import { allPages } from "content-collections";
 
 import { Mdx } from "@/components/content/mdx-components";
 
@@ -51,6 +51,7 @@ export default async function PagePage(
   const images = await Promise.all(
     page.images.map(async (src: string) => ({
       src,
+      alt: "", // Default alt text
       blurDataURL: await getBlurDataURL(src),
     })),
   );
@@ -66,7 +67,7 @@ export default async function PagePage(
         )}
       </div>
       <hr className="my-4" />
-      <Mdx code={page.body.code} images={images} />
+      <Mdx content={page.body.raw} images={images} />
     </article>
   );
 }

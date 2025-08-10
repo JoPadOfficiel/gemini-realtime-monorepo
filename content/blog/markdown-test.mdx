@@ -1,0 +1,202 @@
+---
+title: "Markdown Rendering Test"
+description: "Test all Markdown features to ensure proper rendering"
+date: "2024-01-15"
+published: true
+authors:
+  - shadcn
+categories:
+  - education
+---
+
+# Markdown Rendering Test
+
+This post tests all Markdown features to ensure they render correctly.
+
+## Code Blocks
+
+### JavaScript
+```javascript
+function greetUser(name) {
+  console.log(`Hello, ${name}!`);
+  return `Welcome to our app, ${name}`;
+}
+
+const user = "Developer";
+greetUser(user);
+```
+
+### Python
+```python
+def calculate_fibonacci(n):
+    if n <= 1:
+        return n
+    return calculate_fibonacci(n-1) + calculate_fibonacci(n-2)
+
+# Generate first 10 Fibonacci numbers
+for i in range(10):
+    print(f"F({i}) = {calculate_fibonacci(i)}")
+```
+
+### HTML
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Page</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+    <p>This is a test paragraph.</p>
+</body>
+</html>
+```
+
+## Tables
+
+### Simple Table
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Syntax Highlighting | ✅ Working | All languages supported |
+| Tables | ✅ Working | Proper borders and styling |
+| Code Blocks | ✅ Working | Dark theme with copy button |
+| GitHub Flavored Markdown | ✅ Working | Full GFM support |
+
+### Complex Table
+| Framework | Language | Performance | Learning Curve | Community |
+|-----------|----------|-------------|----------------|-----------|
+| Next.js | JavaScript/TypeScript | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Nuxt.js | JavaScript/TypeScript | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| SvelteKit | JavaScript/TypeScript | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
+| Remix | JavaScript/TypeScript | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+
+## Lists
+
+### Unordered Lists
+- First item
+- Second item with **bold text**
+- Third item with *italic text*
+- Fourth item with `inline code`
+- Fifth item with [a link](https://example.com)
+
+### Ordered Lists
+1. First step
+2. Second step
+3. Third step with nested items:
+   - Sub-item A
+   - Sub-item B
+   - Sub-item C
+4. Fourth step
+5. Final step
+
+### Task Lists (GitHub Flavored Markdown)
+- [x] Completed task
+- [x] Another completed task
+- [ ] Pending task
+- [ ] Another pending task
+- [x] ~~Cancelled task~~ (completed but crossed out)
+
+## Blockquotes
+
+> This is a simple blockquote.
+
+> This is a longer blockquote that spans multiple lines and contains **bold text**, *italic text*, and `inline code`. It should be properly styled with a left border and background.
+
+> ### Blockquote with heading
+> 
+> This blockquote contains a heading and multiple paragraphs.
+> 
+> It should maintain proper spacing and formatting throughout.
+
+## Text Formatting
+
+- **Bold text**
+- *Italic text*
+- ***Bold and italic text***
+- ~~Strikethrough text~~
+- `Inline code`
+- [Link to external site](https://example.com)
+- [Link with title](https://example.com "This is a title")
+
+## Inline Code vs Code Blocks
+
+Here's some `inline code` in a sentence.
+
+```
+This is a code block without language specification.
+It should still be properly formatted.
+```
+
+## GitHub Flavored Markdown Features
+
+### Autolinks
+- URL: https://github.com/vercel/next.js
+- Email: support@example.com
+- www.example.com
+
+### Strikethrough
+~~This text should be crossed out~~
+
+### Tables with Alignment
+| Left Aligned | Center Aligned | Right Aligned |
+|:-------------|:--------------:|--------------:|
+| Left | Center | Right |
+| Text | Text | Text |
+| More | More | More |
+
+## Headings Test
+
+# Heading 1
+## Heading 2
+### Heading 3
+#### Heading 4
+##### Heading 5
+###### Heading 6
+
+## Mixed Content
+
+Here's a paragraph with **bold**, *italic*, and `code` text, followed by a list:
+
+1. Item with `code`
+2. Item with **bold text**
+3. Item with *italic text*
+4. Item with [a link](https://example.com)
+
+And here's a code block:
+
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  isActive: boolean;
+}
+
+const users: User[] = [
+  { id: 1, name: "John Doe", email: "john@example.com", isActive: true },
+  { id: 2, name: "Jane Smith", email: "jane@example.com", isActive: false },
+];
+
+function getActiveUsers(users: User[]): User[] {
+  return users.filter(user => user.isActive);
+}
+```
+
+## Horizontal Rules
+
+Above this line.
+
+---
+
+Below this line.
+
+## Final Test
+
+If you can see all the above elements properly formatted with:
+- ✅ Syntax-highlighted code blocks
+- ✅ Properly styled tables with borders
+- ✅ Formatted lists and blockquotes
+- ✅ Working links and text formatting
+
+Then the Markdown rendering is working correctly! 🎉

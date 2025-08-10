@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { allDocs } from "contentlayer/generated";
+import { allDocs } from "content-collections";
 
 import { getTableOfContents } from "@/lib/toc";
 import { Mdx } from "@/components/content/mdx-components";
@@ -19,9 +19,11 @@ interface DocPageProps {
   }>;
 }
 
-async function getDocFromParams(params) {
+async function getDocFromParams(params: { slug?: string[] }) {
   const slug = params.slug?.join("/") || "";
-  const doc = allDocs.find((doc) => doc.slugAsParams === slug);
+  // If no slug, look for index page
+  const targetSlug = slug === "" ? "index" : slug;
+  const doc = allDocs.find((doc) => doc.slugAsParams === targetSlug);
 
   if (!doc) return null;
 
@@ -61,6 +63,7 @@ export default async function DocPage(props: DocPageProps) {
   const images = await Promise.all(
     doc.images.map(async (src: string) => ({
       src,
+      alt: "", // Default alt text
       blurDataURL: await getBlurDataURL(src),
     })),
   );
@@ -70,7 +73,7 @@ export default async function DocPage(props: DocPageProps) {
       <div className="mx-auto w-full min-w-0">
         <DocsPageHeader heading={doc.title} text={doc.description} />
         <div className="pb-4 pt-11">
-          <Mdx code={doc.body.code} images={images} />
+          <Mdx content={doc.body.raw} images={images} />
         </div>
         <hr className="my-4 md:my-6" />
         <DocsPager doc={doc} />

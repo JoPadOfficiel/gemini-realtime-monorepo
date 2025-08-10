@@ -75,7 +75,7 @@ export function RadialShapeChart() {
                           y={viewBox.cy}
                           className="fill-foreground text-4xl font-bold"
                         >
-                          {chartData[0].visitors.toLocaleString()}
+                          {chartData[0]?.visitors?.toLocaleString() || '0'}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
@@ -87,6 +87,7 @@ export function RadialShapeChart() {
                       </text>
                     );
                   }
+                  return null;
                 }}
               />
             </PolarRadiusAxis>

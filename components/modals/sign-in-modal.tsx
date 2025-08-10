@@ -22,7 +22,11 @@ function SignInModal({
   const [signInClicked, setSignInClicked] = useState(false);
 
   return (
-    <Modal showModal={showSignInModal} setShowModal={setShowSignInModal}>
+    <Modal
+      showModal={showSignInModal}
+      setShowModal={setShowSignInModal}
+      title="Sign In"
+    >
       <div className="w-full">
         <div className="flex flex-col items-center justify-center space-y-3 border-b bg-background px-4 py-6 pt-8 text-center md:px-16">
           <a href={siteConfig.url}>

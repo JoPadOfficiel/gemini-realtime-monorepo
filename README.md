@@ -24,21 +24,25 @@
 
 ## Introduction
 
-Empower your next project with the stack of Next.js 14, Prisma, Neon, Auth.js v5, Resend, React Email, Shadcn/ui, and Stripe.
+Empower your next project with the stack of Next.js 15, Prisma, Neon, Auth.js v5, Resend, React Email, Shadcn/ui, and Stripe.
 <br/>
 All seamlessly integrated with the SaaS Starter to accelerate your development and saas journey.
 
 ## Installation
 
-Clone & create this repo locally with the following command:
+For detailed setup instructions, see our [Installation Guide](docs/getting-started/installation.md).
+
+Quick start:
 
 ```bash
-npx create-next-app my-saas-project --example "https://github.com/mickasmt/next-saas-stripe-starter"
+mkdir my-saas-project
+cd my-saas-project
+pnpm install
+cp .env.example .env.local
+# Configure your environment variables
+pnpm db:generate && pnpm db:push
+pnpm dev
 ```
-
-Or, deploy with Vercel:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmickasmt%2Fnext-saas-stripe-starter)
 
 ### Steps
 

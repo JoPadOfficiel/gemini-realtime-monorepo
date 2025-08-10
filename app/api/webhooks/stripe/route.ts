@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (error) {
-    return new Response(`Webhook Error: ${error.message}`, { status: 400 });
+    return new Response(`Webhook Error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     // Retrieve the subscription details from Stripe.
     const subscription = await stripe.subscriptions.retrieve(
       session.subscription as string,
-    );
+    ) as Stripe.Subscription;
 
     // Update the user stripe into in our database.
     // Since this is the initial subscription, we need to update
@@ -40,24 +40,24 @@ export async function POST(req: Request) {
       data: {
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: subscription.customer as string,
-        stripePriceId: subscription.items.data[0].price.id,
+        stripePriceId: subscription.items.data[0]?.price?.id || '',
         stripeCurrentPeriodEnd: new Date(
-          subscription.current_period_end * 1000,
+          (subscription as any).current_period_end * 1000,
         ),
       },
     });
   }
 
   if (event.type === "invoice.payment_succeeded") {
-    const session = event.data.object as Stripe.Invoice;
+    const invoice = event.data.object as Stripe.Invoice;
 
     // If the billing reason is not subscription_create, it means the customer has updated their subscription.
     // If it is subscription_create, we don't need to update the subscription id and it will handle by the checkout.session.completed event.
-    if (session.billing_reason != "subscription_create") {
+    if (invoice.billing_reason != "subscription_create") {
       // Retrieve the subscription details from Stripe.
       const subscription = await stripe.subscriptions.retrieve(
-        session.subscription as string,
-      );
+        (invoice as any).subscription as string,
+      ) as Stripe.Subscription;
 
       // Update the price id and set the new period end.
       await prisma.user.update({
@@ -65,9 +65,9 @@ export async function POST(req: Request) {
           stripeSubscriptionId: subscription.id,
         },
         data: {
-          stripePriceId: subscription.items.data[0].price.id,
+          stripePriceId: subscription.items.data[0]?.price?.id || '',
           stripeCurrentPeriodEnd: new Date(
-            subscription.current_period_end * 1000,
+            (subscription as any).current_period_end * 1000,
           ),
         },
       });

@@ -54,6 +54,7 @@ function DeleteAccountModal({
       showModal={showDeleteAccountModal}
       setShowModal={setShowDeleteAccountModal}
       className="gap-0"
+      title="Delete Account"
     >
       <div className="flex flex-col items-center justify-center space-y-3 border-b p-4 pt-8 sm:px-16">
         <UserAvatar

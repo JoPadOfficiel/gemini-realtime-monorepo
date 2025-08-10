@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { allPosts } from "contentlayer/generated";
+import { allPosts } from "content-collections";
 
 import { BLOG_CATEGORIES } from "@/config/blog";
 import { constructMetadata, getBlurDataURL } from "@/lib/utils";
@@ -53,14 +53,14 @@ export default async function BlogCategory(
       .sort((a, b) => b.date.localeCompare(a.date))
       .map(async (post) => ({
         ...post,
-        blurDataURL: await getBlurDataURL(post.image),
+        blurDataURL: await getBlurDataURL(post.image || null),
       })),
   );
 
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {articles.map((article, idx) => (
-        <BlogCard key={article._id} data={article} priority={idx <= 2} />
+        <BlogCard key={article.slugAsParams} data={article} priority={idx <= 2} />
       ))}
     </div>
   );
