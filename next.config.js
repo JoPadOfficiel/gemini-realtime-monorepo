@@ -22,6 +22,13 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ["@prisma/client"],
+  // Temporary optimizations for build performance
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
 };
 
 module.exports = withContentlayer(nextConfig);
