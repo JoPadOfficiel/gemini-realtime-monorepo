@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Swagger UI Custom Styles */
+.swagger-ui-container {
+  @apply w-full;
+}
+
+.swagger-ui-container .swagger-ui {
+  font-family: inherit !important;
+}
+
+.swagger-ui-container .swagger-ui .topbar {
+  display: none !important;
+}
+
+.swagger-ui-container .swagger-ui .info {
+  margin: 0 !important;
+}
+
+.swagger-ui-container .swagger-ui .scheme-container {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.swagger-ui-container .swagger-ui .opblock-tag {
+  @apply border-border;
+}
+
+.swagger-ui-container .swagger-ui .opblock {
+  @apply border-border bg-card;
+}
+
+.swagger-ui-container .swagger-ui .opblock .opblock-summary {
+  @apply border-border;
+}
+
+.swagger-ui-container .swagger-ui .opblock.opblock-post {
+  @apply border-l-4 border-l-green-500;
+}
+
+.swagger-ui-container .swagger-ui .opblock.opblock-get {
+  @apply border-l-4 border-l-blue-500;
+}
+
+.swagger-ui-container .swagger-ui .opblock.opblock-put {
+  @apply border-l-4 border-l-orange-500;
+}
+
+.swagger-ui-container .swagger-ui .opblock.opblock-delete {
+  @apply border-l-4 border-l-red-500;
+}
+
+.swagger-ui-container .swagger-ui .opblock.opblock-patch {
+  @apply border-l-4 border-l-purple-500;
+}
+
+.swagger-ui-container .swagger-ui .btn {
+  @apply transition-colors;
+}
+
+.swagger-ui-container .swagger-ui .btn.authorize {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.swagger-ui-container .swagger-ui .btn.try-out__btn {
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+
+.swagger-ui-container .swagger-ui .btn.execute {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.swagger-ui-container .swagger-ui .parameters-col_description input[type="text"],
+.swagger-ui-container .swagger-ui .parameters-col_description textarea {
+  @apply bg-input border-border text-foreground;
+}
+
+.swagger-ui-container .swagger-ui .response-col_status {
+  @apply text-foreground;
+}
+
+.swagger-ui-container .swagger-ui .response-col_links {
+  @apply text-muted-foreground;
+}
+
+.swagger-ui-container .swagger-ui .model-box {
+  @apply bg-muted border-border;
+}
+
+.swagger-ui-container .swagger-ui .model .property {
+  @apply text-foreground;
+}
+
+.swagger-ui-container .swagger-ui .model .property.primitive {
+  @apply text-muted-foreground;
+}
+
+/* Dark mode adjustments */
+.dark .swagger-ui-container .swagger-ui {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark .swagger-ui-container .swagger-ui .opblock.opblock-post {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark .swagger-ui-container .swagger-ui .opblock.opblock-get {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark .swagger-ui-container .swagger-ui .opblock.opblock-put {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark .swagger-ui-container .swagger-ui .opblock.opblock-delete {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark .swagger-ui-container .swagger-ui .opblock.opblock-patch {
+  filter: invert(1) hue-rotate(180deg);
+}

@@ -5,6 +5,72 @@ import { env } from "@/env.mjs";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 
+/**
+ * @swagger
+ * /api/webhooks/stripe:
+ *   post:
+ *     summary: Handle Stripe webhook events
+ *     description: Processes Stripe webhook events for subscription management and payment processing
+ *     tags:
+ *       - Webhooks
+ *     requestBody:
+ *       required: true
+ *       description: Stripe webhook event payload
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: Unique identifier for the event
+ *               object:
+ *                 type: string
+ *                 enum: [event]
+ *                 description: String representing the object's type
+ *               type:
+ *                 type: string
+ *                 description: Description of the event
+ *                 enum:
+ *                   - checkout.session.completed
+ *                   - invoice.payment_succeeded
+ *               data:
+ *                 type: object
+ *                 description: Object containing data associated with the event
+ *             required: [id, object, type, data]
+ *     parameters:
+ *       - in: header
+ *         name: Stripe-Signature
+ *         required: true
+ *         description: Stripe webhook signature for verification
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Webhook processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 received:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid webhook signature or malformed request
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: "Webhook Error: Invalid signature"
+ *       500:
+ *         description: Internal server error processing webhook
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: "Internal server error"
+ */
 export async function POST(req: Request) {
   const body = await req.text();
   const headersList = await headers();

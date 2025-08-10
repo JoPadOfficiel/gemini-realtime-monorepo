@@ -4,6 +4,63 @@ import { ogImageSchema } from "@/lib/validations/og"
 
 export const runtime = "edge"
 
+/**
+ * @swagger
+ * /api/og:
+ *   get:
+ *     summary: Generate Open Graph images
+ *     description: Dynamically generates Open Graph images for social media sharing with customizable text and styling
+ *     tags:
+ *       - Utilities
+ *     parameters:
+ *       - in: query
+ *         name: heading
+ *         required: true
+ *         description: The main heading text to display on the image
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *           example: "Welcome to our SaaS Platform"
+ *       - in: query
+ *         name: type
+ *         required: true
+ *         description: The type of content (e.g., blog, doc, page)
+ *         schema:
+ *           type: string
+ *           example: "blog"
+ *       - in: query
+ *         name: mode
+ *         required: false
+ *         description: Color theme for the image
+ *         schema:
+ *           type: string
+ *           enum: [light, dark]
+ *           default: dark
+ *           example: "dark"
+ *     responses:
+ *       200:
+ *         description: Successfully generated Open Graph image
+ *         content:
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Invalid parameters provided
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: "Invalid parameters"
+ *       500:
+ *         description: Failed to generate image
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: "Failed to generate image"
+ */
+
 const interRegular = fetch(
   new URL("../../../assets/fonts/Inter-Regular.ttf", import.meta.url)
 ).then((res) => res.arrayBuffer())
