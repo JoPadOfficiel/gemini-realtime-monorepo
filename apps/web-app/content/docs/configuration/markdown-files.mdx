@@ -1,0 +1,282 @@
+---
+title: Content Collections
+description: Modern content management with Content Collections and MDX.
+---
+
+The project includes a blog and documentation built using [Content Collections](https://www.content-collections.dev/) and [MDX](https://mdxjs.com/).
+
+## Content Collections
+
+Content Collections is a modern, type-safe content management system that replaces Contentlayer. It provides excellent performance, better developer experience, and full Next.js 15 support.
+
+Key advantages:
+- ✅ **Type Safety** - Automatic TypeScript types for all content
+- ✅ **Performance** - Faster builds and hot reloading
+- ✅ **Next.js 15 Support** - Full compatibility with latest Next.js
+- ✅ **Better DX** - Superior error messages and debugging
+- ✅ **Future-Proof** - Actively maintained and updated
+
+You can create reusable data models for various content types like blog posts, docs, guides, authors, and pages with Content Collections.
+
+Frontmatter in Markdown files allows you to define metadata such as title, description, authors, and images, providing type-safe content management.
+
+### content-collections.ts
+
+Here's the `content-collections.ts` file that configures Content Collections in your project:
+
+```typescript title="content-collections.ts"
+import { defineCollection, defineConfig } from "@content-collections/core";
+import { z } from "zod";
+
+// Blog posts collection
+const posts = defineCollection({
+  name: "posts",
+  directory: "content/blog",
+  include: "**/*.mdx",
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+    image: z.string().optional(),
+    date: z.string(),
+    published: z.boolean().default(false),
+    authors: z.array(z.string()).default(["shadcn"]),
+    categories: z.array(z.enum(["news", "education"])).default(["news"]),
+    related: z.array(z.string()).optional(),
+  }),
+  transform: (document) => {
+    const images = document.content.match(/(?<=<Image[^>]*\bsrc=")[^"]+(?="[^>]*\/>)/g) || [];
+    return {
+      ...document,
+      slug: `/blog/${document._meta.path}`,
+      slugAsParams: document._meta.path,
+      images,
+      body: { raw: document.content },
+    };
+  },
+});
+
+// Documentation collection
+const docs = defineCollection({
+  name: "docs",
+  directory: "content/docs",
+  include: "**/*.mdx",
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+    published: z.boolean().default(true),
+    featured: z.boolean().default(false),
+    component: z.boolean().default(false),
+    toc: z.boolean().default(true),
+  }),
+  transform: (document) => {
+    const images = document.content.match(/(?<=<Image[^>]*\bsrc=")[^"]+(?="[^>]*\/>)/g) || [];
+    return {
+      ...document,
+      slug: `/${document._meta.path}`,
+      slugAsParams: document._meta.path,
+      images,
+      body: { raw: document.content },
+    };
+  },
+});
+
+// Guides collection
+const guides = defineCollection({
+  name: "guides",
+  directory: "content/guides",
+  include: "**/*.mdx",
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+    date: z.string(),
+    published: z.boolean().default(false),
+    featured: z.boolean().default(false),
+  }),
+  transform: (document) => {
+    const images = document.content.match(/(?<=<Image[^>]*\bsrc=")[^"]+(?="[^>]*\/>)/g) || [];
+    return {
+      ...document,
+      slug: `/guides/${document._meta.path}`,
+      slugAsParams: document._meta.path,
+      images,
+      body: { raw: document.content },
+    };
+  },
+});
+
+// Authors collection
+const authors = defineCollection({
+  name: "authors",
+  directory: "content/authors",
+  include: "**/*.mdx",
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+    avatar: z.string().optional(),
+    twitter: z.string().optional(),
+  }),
+  transform: (document) => {
+    const images = document.content.match(/(?<=<Image[^>]*\bsrc=")[^"]+(?="[^>]*\/>)/g) || [];
+    return {
+      ...document,
+      slug: `/${document._meta.path}`,
+      slugAsParams: document._meta.path,
+      images,
+      body: { raw: document.content },
+    };
+  },
+});
+
+// Pages collection
+const pages = defineCollection({
+  name: "pages",
+  directory: "content/pages",
+  include: "**/*.mdx",
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+  }),
+  transform: (document) => {
+    const images = document.content.match(/(?<=<Image[^>]*\bsrc=")[^"]+(?="[^>]*\/>)/g) || [];
+    return {
+      ...document,
+      slug: `/${document._meta.path}`,
+      slugAsParams: document._meta.path,
+      images,
+      body: { raw: document.content },
+    };
+  },
+});
+
+export default defineConfig({
+  collections: [posts, docs, guides, authors, pages],
+});
+```
+
+This file configures Content Collections to process Markdown files in the specified directories (`content/blog`, `content/docs`, `content/guides`, `content/authors`, `content/pages`). It defines five different collections with their respective schemas and transformations.
+
+Key improvements over Contentlayer:
+- **Zod schemas** for better type safety and validation
+- **Automatic type generation** for TypeScript
+- **Better performance** with faster processing
+- **Enhanced error handling** with clear error messages
+
+## Frontmatter Schemas
+
+Here are the frontmatter schemas for each content type with Content Collections:
+
+<Steps>
+
+### Blog Posts
+
+```yaml
+---
+title: "Your Post Title"                    # Required
+description: "Brief description for SEO"    # Optional
+image: "/_static/blog/post-image.jpg"      # Optional
+date: "2024-01-15"                         # Required
+published: true                            # Default: false
+authors:                                   # Default: ["shadcn"]
+  - john-doe
+  - jane-smith
+categories:                                # Default: ["news"]
+  - education
+  - news
+related:                                   # Optional
+  - related-post-slug
+  - another-post-slug
+---
+```
+
+### Documentation
+
+```yaml
+---
+title: "Page Title"                        # Required
+description: "Page description for SEO"    # Optional
+published: true                            # Default: true
+featured: false                            # Default: false
+component: false                           # Default: false
+toc: true                                  # Default: true (table of contents)
+---
+```
+
+### Guides
+
+```yaml
+---
+title: "Guide Title"                       # Required
+description: "Guide description"           # Optional
+date: "2024-01-15"                        # Required
+published: true                            # Default: false
+featured: false                            # Default: false
+---
+```
+
+### Authors
+
+```yaml
+---
+title: "Author Name"                       # Required
+description: "Author bio"                  # Optional
+avatar: "/_static/avatars/author.jpg"     # Optional
+twitter: "username"                        # Optional (without @)
+---
+```
+
+### Pages
+
+```yaml
+---
+title: "Page Title"                        # Required
+description: "Page description"            # Optional
+---
+```
+
+</Steps>
+
+## Using Content in Your App
+
+### Import Collections
+
+```typescript
+import { allPosts, allDocs, allGuides, allAuthors, allPages } from "content-collections";
+
+// Get all published posts
+const publishedPosts = allPosts.filter(post => post.published);
+
+// Get a specific post
+const post = allPosts.find(post => post.slugAsParams === "my-post");
+
+// Get featured guides
+const featuredGuides = allGuides.filter(guide => guide.featured);
+```
+
+### Type Safety
+
+Content Collections automatically generates TypeScript types:
+
+```typescript
+import type { Post, Doc, Guide } from "content-collections";
+
+function BlogPost({ post }: { post: Post }) {
+  // TypeScript knows all available properties
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.description}</p>
+      <time>{post.date}</time>
+    </article>
+  );
+}
+```
+
+## MDX Features
+
+Content Collections supports all MDX features:
+
+- **Syntax highlighting** with rehype-pretty-code
+- **GitHub Flavored Markdown** (tables, task lists, etc.)
+- **React components** in your content
+- **Automatic slug generation** from file paths
+- **Image optimization** with Next.js Image component
