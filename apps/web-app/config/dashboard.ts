@@ -20,6 +20,7 @@ export const sidebarLinks: SidebarNavItem[] = [
         authorizeOnly: UserRole.USER,
       },
       { href: "/dashboard/charts", icon: "lineChart", title: "Charts" },
+      { href: "/dashboard/gemini-playground", icon: "bot", title: "Gemini AI Playground" },
       {
         href: "/admin/orders",
         icon: "package",
