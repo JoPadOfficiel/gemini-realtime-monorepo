@@ -14,8 +14,15 @@ import { base64ToFloat32Array, float32ToPcm16 } from '@/lib/utils';
 interface Config {
   systemPrompt: string;
   voice: string;
+  model: string;
+  language: string;
   googleSearch: boolean;
   allowInterruptions: boolean;
+  enableAffectiveDialog: boolean;
+  enableProactiveAudio: boolean;
+  enableThinking: boolean;
+  enableVAD: boolean;
+  enableTranscription: boolean;
 }
 
 export default function GeminiVoiceChat() {
@@ -25,8 +32,15 @@ export default function GeminiVoiceChat() {
   const [config, setConfig] = useState<Config>({
     systemPrompt: "You are a friendly Gemini 2.0 model. Respond verbally in a casual, helpful tone.",
     voice: "Puck",
+    model: "gemini-live-2.5-flash-preview",
+    language: "auto",
     googleSearch: true,
-    allowInterruptions: false
+    allowInterruptions: false,
+    enableAffectiveDialog: false,
+    enableProactiveAudio: false,
+    enableThinking: false,
+    enableVAD: true,
+    enableTranscription: false
   });
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef(null);
@@ -41,7 +55,34 @@ export default function GeminiVoiceChat() {
   const [chatMode, setChatMode] = useState<'audio' | 'video' | null>(null);
   const [videoSource, setVideoSource] = useState<'camera' | 'screen' | null>(null);
 
-  const voices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"];
+  // Available models
+  const models = [
+    { id: "gemini-live-2.5-flash-preview", name: "Gemini Live 2.5 Flash (Half-Cascade)", type: "half_cascade" },
+    { id: "gemini-2.0-flash-live-001", name: "Gemini 2.0 Flash Live (Half-Cascade)", type: "half_cascade" },
+    { id: "gemini-2.5-flash-preview-native-audio-dialog", name: "Gemini 2.5 Flash Native Audio Dialog", type: "native_audio" },
+    { id: "gemini-2.5-flash-exp-native-audio-thinking-dialog", name: "Gemini 2.5 Flash Native Audio Thinking", type: "native_audio" }
+  ];
+
+  // Available voices (expanded list)
+  const voices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr"];
+
+  // Available languages
+  const languages = [
+    { code: "auto", name: "Auto-detect" },
+    { code: "en-US", name: "English (US)" },
+    { code: "en-GB", name: "English (UK)" },
+    { code: "fr-FR", name: "French" },
+    { code: "es-ES", name: "Spanish" },
+    { code: "de-DE", name: "German" },
+    { code: "it-IT", name: "Italian" },
+    { code: "pt-BR", name: "Portuguese (Brazil)" },
+    { code: "ja-JP", name: "Japanese" },
+    { code: "ko-KR", name: "Korean" },
+    { code: "cmn-CN", name: "Chinese (Mandarin)" },
+    { code: "hi-IN", name: "Hindi" },
+    { code: "ar-XA", name: "Arabic" },
+    { code: "ru-RU", name: "Russian" }
+  ];
   let audioBuffer = []
   let isPlaying = false
 
@@ -298,6 +339,55 @@ export default function GeminiVoiceChat() {
 
         <Card>
           <CardContent className="pt-6 space-y-4">
+            {/* Model Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="model-select">Model</Label>
+              <Select
+                value={config.model}
+                onValueChange={(value) => setConfig(prev => ({ ...prev, model: value }))}
+                disabled={isConnected}
+              >
+                <SelectTrigger id="model-select">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          model.type === 'native_audio' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {model.type === 'native_audio' ? 'Native Audio' : 'Half-Cascade'}
+                        </span>
+                        {model.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Language Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="language-select">Language</Label>
+              <Select
+                value={config.language}
+                onValueChange={(value) => setConfig(prev => ({ ...prev, language: value }))}
+                disabled={isConnected}
+              >
+                <SelectTrigger id="language-select">
+                  <SelectValue placeholder="Select a language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {languages.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="system-prompt">System Prompt</Label>
               <Textarea
@@ -329,15 +419,73 @@ export default function GeminiVoiceChat() {
               </Select>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="google-search"
-                checked={config.googleSearch}
-                onCheckedChange={(checked) => 
-                  setConfig(prev => ({ ...prev, googleSearch: checked as boolean }))}
-                disabled={isConnected}
-              />
-              <Label htmlFor="google-search">Enable Google Search</Label>
+            {/* Advanced Features */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="google-search"
+                  checked={config.googleSearch}
+                  onCheckedChange={(checked) =>
+                    setConfig(prev => ({ ...prev, googleSearch: checked as boolean }))}
+                  disabled={isConnected}
+                />
+                <Label htmlFor="google-search">Google Search</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="affective-dialog"
+                  checked={config.enableAffectiveDialog}
+                  onCheckedChange={(checked) =>
+                    setConfig(prev => ({ ...prev, enableAffectiveDialog: checked as boolean }))}
+                  disabled={isConnected}
+                />
+                <Label htmlFor="affective-dialog">Affective Dialog</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="proactive-audio"
+                  checked={config.enableProactiveAudio}
+                  onCheckedChange={(checked) =>
+                    setConfig(prev => ({ ...prev, enableProactiveAudio: checked as boolean }))}
+                  disabled={isConnected}
+                />
+                <Label htmlFor="proactive-audio">Proactive Audio</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="thinking-mode"
+                  checked={config.enableThinking}
+                  onCheckedChange={(checked) =>
+                    setConfig(prev => ({ ...prev, enableThinking: checked as boolean }))}
+                  disabled={isConnected}
+                />
+                <Label htmlFor="thinking-mode">Thinking Mode</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="vad"
+                  checked={config.enableVAD}
+                  onCheckedChange={(checked) =>
+                    setConfig(prev => ({ ...prev, enableVAD: checked as boolean }))}
+                  disabled={isConnected}
+                />
+                <Label htmlFor="vad">Voice Activity Detection</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="transcription"
+                  checked={config.enableTranscription}
+                  onCheckedChange={(checked) =>
+                    setConfig(prev => ({ ...prev, enableTranscription: checked as boolean }))}
+                  disabled={isConnected}
+                />
+                <Label htmlFor="transcription">Audio Transcription</Label>
+              </div>
             </div>
           </CardContent>
         </Card>
