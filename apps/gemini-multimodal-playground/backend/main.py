@@ -21,9 +21,9 @@ app.add_middleware(
 )
 
 class GeminiConnection:
-    def __init__(self):
+    def __init__(self, model="gemini-live-2.5-flash-preview"):
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        self.model = "gemini-2.0-flash-exp"
+        self.model = model
         self.uri = (
             "wss://generativelanguage.googleapis.com/ws/"
             "google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent"
@@ -48,7 +48,7 @@ class GeminiConnection:
                     "speech_config": {
                         "voice_config": {
                             "prebuilt_voice_config": {
-                                "voice_name": self.config["voice"]
+                                "voice_name": self.config.get("voice", "Puck")
                             }
                         }
                     }
@@ -56,12 +56,34 @@ class GeminiConnection:
                 "system_instruction": {
                     "parts": [
                         {
-                            "text": self.config["systemPrompt"]
+                            "text": self.config.get("systemPrompt", "You are a helpful assistant.")
                         }
                     ]
                 }
             }
         }
+
+        # Add advanced features if enabled (only supported ones)
+        # Note: Some features like thinking are built into the model name, not config
+        # if self.config.get("enableAffectiveDialog", False):
+        #     setup_message["setup"]["generation_config"]["enable_affective_dialog"] = True
+
+        # VAD configuration (not supported in current API version)
+        # Will be implemented when v1alpha API is available
+
+        # Transcription
+        if self.config.get("enableTranscription", False):
+            setup_message["setup"]["generation_config"]["input_audio_transcription"] = {}
+            setup_message["setup"]["generation_config"]["output_audio_transcription"] = {}
+
+        # Language configuration (for half-cascade models)
+        if self.config.get("language") and self.config["language"] != "auto":
+            if "native-audio" not in self.model:  # Only for half-cascade models
+                setup_message["setup"]["generation_config"]["speech_config"]["language_code"] = self.config["language"]
+        print(f"Sending setup message with model: {self.model}")
+        print(f"Voice: {self.config.get('voice', 'Puck')}")
+        print(f"Affective Dialog: {self.config.get('enableAffectiveDialog', False)}")
+        print(f"Setup message: {json.dumps(setup_message, indent=2)}")
         await self.ws.send(json.dumps(setup_message))
         
         # Wait for setup completion
@@ -71,6 +93,9 @@ class GeminiConnection:
     def set_config(self, config):
         """Set configuration for the connection"""
         self.config = config
+        # Update model if specified in config
+        if "model" in config:
+            self.model = config["model"]
 
     async def send_audio(self, audio_data: str):
         """Send audio data to Gemini"""
