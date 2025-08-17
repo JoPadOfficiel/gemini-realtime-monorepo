@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, StopCircle, Video, Monitor } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,22 +54,17 @@ export default function GeminiVoiceChat() {
   const [videoSource, setVideoSource] = useState<'camera' | 'screen' | null>(null);
   const [tokenCount, setTokenCount] = useState(0);
   const [modelLimits, setModelLimits] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<Array<{role: string, content: string}>>([]);
+  const [conversation, setConversation] = useState<Array<{role: string, content: string, type?: string}>>([]);
   const [isListening, setIsListening] = useState(false);
+  const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
+  const [currentUserMessage, setCurrentUserMessage] = useState('');
+  const [currentThinking, setCurrentThinking] = useState('');
 
-  // Available models - Prioritizing Half-Cascade due to better limits
+  // Available models - Cleaned up, no duplicates
   const models = [
     {
       id: "gemini-live-2.5-flash-preview",
-      name: "Gemini Live 2.5 Flash (Half-Cascade)",
-      type: "half_cascade",
-      recommended: true,
-      limits: "3 sessions, 1M TPM (Free)"
-    },
-    {
-      id: "gemini-2.0-flash-live-001",
-      name: "Gemini 2.0 Flash Live (Half-Cascade)",
+      name: "Gemini Live 2.5 Flash (Recommended)",
       type: "half_cascade",
       recommended: true,
       limits: "3 sessions, 1M TPM (Free)"
@@ -140,6 +135,20 @@ export default function GeminiVoiceChat() {
 
       setIsStreaming(true);
       setIsConnected(true);
+
+      // Add initial user message to conversation only if not already added
+      setConversation(prev => {
+        const hasStartMessage = prev.some(msg =>
+          msg.content.includes('Started') && msg.content.includes('conversation')
+        );
+        if (!hasStartMessage) {
+          return [...prev, {
+            role: 'user',
+            content: `Started ${mode} conversation...`
+          }];
+        }
+        return prev;
+      });
     };
 
     wsRef.current.onmessage = async (event) => {
@@ -148,7 +157,37 @@ export default function GeminiVoiceChat() {
         const audioData = base64ToFloat32Array(response.data);
         playAudioData(audioData);
       } else if (response.type === 'text') {
-        setText(prev => prev + response.text + '\n');
+        const textData = response.data || response.text || '';
+        // Accumulate text fragments in currentAssistantMessage
+        setCurrentAssistantMessage(prev => prev + textData);
+        setText(prev => prev + textData + '\n');
+      } else if (response.type === 'thinking') {
+        const thinkingData = response.data || '';
+        // Add each thinking fragment as a separate message immediately
+        if (thinkingData.trim()) {
+          setConversation(prev => [...prev, { role: 'assistant', content: thinkingData.trim(), type: 'thinking' }]);
+        }
+      } else if (response.type === 'user_message') {
+        // Add complete user message from accumulated transcription
+        const messageData = response.data || '';
+        if (messageData.trim()) {
+          setConversation(prev => [...prev, { role: 'user', content: messageData.trim() }]);
+        }
+      } else if (response.type === 'assistant_message') {
+        // Add complete assistant message from accumulated transcription
+        const messageData = response.data || '';
+        if (messageData.trim()) {
+          setConversation(prev => [...prev, { role: 'assistant', content: messageData.trim() }]);
+        }
+      } else if (response.type === 'turn_complete') {
+        // When turn is complete, just clear any remaining accumulated text
+        if (currentAssistantMessage.trim()) {
+          setConversation(prev => [...prev, { role: 'assistant', content: currentAssistantMessage.trim() }]);
+          setCurrentAssistantMessage(''); // Reset for next message
+        }
+        // Clear thinking state (thinking messages are added immediately)
+        setCurrentThinking('');
+        setCurrentUserMessage(''); // Clear user message state
       } else if (response.type === 'token_usage') {
         setTokenCount(response.data.total_tokens);
         setModelLimits(response.data.limits);
@@ -241,6 +280,12 @@ export default function GeminiVoiceChat() {
     setIsStreaming(false);
     setIsConnected(false);
     setChatMode(null);
+
+    // Keep conversation history but clear current text and accumulated messages
+    setText('');
+    setCurrentAssistantMessage('');
+    setCurrentUserMessage('');
+    setCurrentThinking('');
   };
 
   const playAudioData = async (audioData) => {
@@ -352,7 +397,6 @@ export default function GeminiVoiceChat() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopVideo();
       stopStream();
     };
   }, []);
@@ -546,27 +590,16 @@ export default function GeminiVoiceChat() {
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="thinking-mode"
-                  checked={config.enableThinking}
-                  onCheckedChange={(checked) =>
-                    setConfig(prev => ({ ...prev, enableThinking: checked as boolean }))}
-                  disabled={isConnected}
-                />
-                <Label htmlFor="thinking-mode">
-                  Thinking Mode
-                  <span className="text-xs text-muted-foreground ml-1">(Native Audio only)</span>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
                   id="vad"
                   checked={config.enableVAD}
                   onCheckedChange={(checked) =>
                     setConfig(prev => ({ ...prev, enableVAD: checked as boolean }))}
                   disabled={isConnected}
                 />
-                <Label htmlFor="vad">Voice Activity Detection</Label>
+                <Label htmlFor="vad">
+                  Voice Activity Detection
+                  <span className="text-xs text-muted-foreground ml-1">(Enables interruption)</span>
+                </Label>
               </div>
 
 
@@ -661,11 +694,87 @@ export default function GeminiVoiceChat() {
           </Card>
         )}
 
-        {text && (
+        {(text || conversation.length > 0) && (
           <Card>
             <CardContent className="pt-6">
-              <h2 className="text-lg font-semibold mb-2">Conversation:</h2>
-              <pre className="whitespace-pre-wrap text-gray-700">{text}</pre>
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-semibold">Conversation:</h2>
+                {conversation.length > 0 && (
+                  <Button
+                    onClick={() => setConversation([])}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    Clear History
+                  </Button>
+                )}
+              </div>
+
+              {/* Show conversation history */}
+              {conversation.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {conversation.map((message, index) => (
+                    <div key={index} className={`p-3 rounded-lg ${
+                      message.role === 'user'
+                        ? 'bg-blue-50 border-l-4 border-blue-400'
+                        : message.type === 'thinking'
+                        ? 'bg-purple-50 border-l-4 border-purple-400'
+                        : 'bg-green-50 border-l-4 border-green-400'
+                    }`}>
+                      <div className="text-sm font-medium text-gray-600 mb-1">
+                        {message.role === 'user'
+                          ? '👤 You'
+                          : message.type === 'thinking'
+                          ? '🧠 Gemini (réflexion)'
+                          : '🤖 Gemini'
+                        }
+                      </div>
+                      <div className={`text-gray-800 ${message.type === 'thinking' ? 'italic text-purple-800' : ''}`}>
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Show current user message being transcribed */}
+              {currentUserMessage && (
+                <div className="space-y-3 mb-4">
+                  <div className="p-3 rounded-lg bg-blue-100 border-l-4 border-blue-300">
+                    <div className="text-sm font-medium text-gray-600 mb-1">
+                      👤 You <span className="text-xs text-blue-600">(speaking...)</span>
+                    </div>
+                    <div className="text-gray-800">{currentUserMessage}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Show current thinking being processed */}
+              {currentThinking && (
+                <div className="space-y-3 mb-4">
+                  <div className="p-3 rounded-lg bg-purple-100 border-l-4 border-purple-300">
+                    <div className="text-sm font-medium text-gray-600 mb-1">
+                      🧠 Gemini <span className="text-xs text-purple-600">(réflexion...)</span>
+                    </div>
+                    <div className="text-gray-800 italic text-purple-800">{currentThinking}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Show current assistant message being typed */}
+              {currentAssistantMessage && (
+                <div className="space-y-3 mb-4">
+                  <div className="p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-400">
+                    <div className="text-sm font-medium text-gray-600 mb-1">
+                      🤖 Gemini <span className="text-xs text-yellow-600">(speaking...)</span>
+                    </div>
+                    <div className="text-gray-800">{currentAssistantMessage}</div>
+                  </div>
+                </div>
+              )}
+
+
             </CardContent>
           </Card>
         )}
