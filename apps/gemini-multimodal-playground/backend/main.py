@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
 import os
+import time
 from dotenv import load_dotenv
 from websockets import connect
 from typing import Dict
@@ -31,6 +32,48 @@ class GeminiConnection:
         )
         self.ws = None
         self.config = None
+        self.token_count = 0
+        self.session_start_time = None
+
+    def get_model_limits(self):
+        """Get rate limits for the current model"""
+        limits = {
+            "gemini-live-2.5-flash-preview": {
+                "name": "Gemini 2.5 Flash Live (Half-Cascade)",
+                "free_tier": {"sessions": 3, "tpm": 1000000, "rpd": "Unlimited"},
+                "tier_1": {"sessions": 50, "tpm": 4000000, "rpd": "Unlimited"},
+                "tier_2": {"sessions": 1000, "tpm": 10000000, "rpd": "Unlimited"},
+                "recommended": True
+            },
+            "gemini-2.0-flash-live-001": {
+                "name": "Gemini 2.0 Flash Live (Half-Cascade)",
+                "free_tier": {"sessions": 3, "tpm": 1000000, "rpd": "Unlimited"},
+                "tier_1": {"sessions": 50, "tpm": 4000000, "rpd": "Unlimited"},
+                "tier_2": {"sessions": 1000, "tpm": 10000000, "rpd": "Unlimited"},
+                "recommended": True
+            },
+            "gemini-2.5-flash-preview-native-audio-dialog": {
+                "name": "Gemini 2.5 Flash Native Audio Dialog",
+                "free_tier": {"sessions": 1, "tpm": 25000, "rpd": 5},
+                "tier_1": {"sessions": 3, "tpm": 50000, "rpd": 50},
+                "tier_2": {"sessions": 100, "tpm": 1000000, "rpd": "Unlimited"},
+                "recommended": False,
+                "warning": "Very restrictive limits"
+            },
+            "gemini-2.5-flash-exp-native-audio-thinking-dialog": {
+                "name": "Gemini 2.5 Flash Native Audio Thinking",
+                "free_tier": {"sessions": 1, "tpm": 10000, "rpd": 5},
+                "tier_1": {"sessions": 1, "tpm": 25000, "rpd": 50},
+                "tier_2": {"sessions": 1, "tpm": 25000, "rpd": 50},
+                "recommended": False,
+                "warning": "Extremely restrictive limits"
+            }
+        }
+        return limits.get(self.model, {
+            "name": "Unknown Model",
+            "free_tier": {"sessions": "Unknown", "tpm": "Unknown", "rpd": "Unknown"},
+            "recommended": False
+        })
 
     async def connect(self):
         """Initialize connection to Gemini"""
@@ -63,10 +106,9 @@ class GeminiConnection:
             }
         }
 
-        # Add advanced features if enabled (only supported ones)
-        # Note: Some features like thinking are built into the model name, not config
-        # if self.config.get("enableAffectiveDialog", False):
-        #     setup_message["setup"]["generation_config"]["enable_affective_dialog"] = True
+        # Add advanced features if enabled
+        # Note: Most advanced features are only available in native audio models
+        # For half-cascade models, we focus on basic functionality
 
         # VAD configuration (not supported in current API version)
         # Will be implemented when v1alpha API is available
@@ -224,7 +266,22 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
                     msg = await gemini.receive()
                     response = json.loads(msg)
-                    
+
+                    # Track token usage if available
+                    if "usageMetadata" in response:
+                        usage = response["usageMetadata"]
+                        if "totalTokenCount" in usage:
+                            gemini.token_count = usage["totalTokenCount"]
+                            # Send token update to client
+                            await websocket.send_text(json.dumps({
+                                "type": "token_usage",
+                                "data": {
+                                    "total_tokens": gemini.token_count,
+                                    "model": gemini.model,
+                                    "limits": gemini.get_model_limits()
+                                }
+                            }))
+
                     # Forward audio data to client
                     try:
                         parts = response["serverContent"]["modelTurn"]["parts"]
@@ -272,6 +329,21 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         if client_id in connections:
             await connections[client_id].close()
             del connections[client_id]
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+@app.get("/model-limits/{model_name}")
+async def get_model_limits(model_name: str):
+    """Get rate limits for a specific model"""
+    dummy_connection = GeminiConnection(model_name)
+    limits = dummy_connection.get_model_limits()
+    return {
+        "model": model_name,
+        "limits": limits,
+        "timestamp": time.time()
+    }
 
 if __name__ == "__main__":
     import uvicorn

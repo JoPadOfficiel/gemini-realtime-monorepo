@@ -22,7 +22,6 @@ interface Config {
   enableProactiveAudio: boolean;
   enableThinking: boolean;
   enableVAD: boolean;
-  enableTranscription: boolean;
 }
 
 export default function GeminiVoiceChat() {
@@ -39,8 +38,7 @@ export default function GeminiVoiceChat() {
     enableAffectiveDialog: false,
     enableProactiveAudio: false,
     enableThinking: false,
-    enableVAD: true,
-    enableTranscription: false
+    enableVAD: true
   });
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef(null);
@@ -54,13 +52,44 @@ export default function GeminiVoiceChat() {
   const videoIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [chatMode, setChatMode] = useState<'audio' | 'video' | null>(null);
   const [videoSource, setVideoSource] = useState<'camera' | 'screen' | null>(null);
+  const [tokenCount, setTokenCount] = useState(0);
+  const [modelLimits, setModelLimits] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<Array<{role: string, content: string}>>([]);
+  const [isListening, setIsListening] = useState(false);
 
-  // Available models
+  // Available models - Prioritizing Half-Cascade due to better limits
   const models = [
-    { id: "gemini-live-2.5-flash-preview", name: "Gemini Live 2.5 Flash (Half-Cascade)", type: "half_cascade" },
-    { id: "gemini-2.0-flash-live-001", name: "Gemini 2.0 Flash Live (Half-Cascade)", type: "half_cascade" },
-    { id: "gemini-2.5-flash-preview-native-audio-dialog", name: "Gemini 2.5 Flash Native Audio Dialog", type: "native_audio" },
-    { id: "gemini-2.5-flash-exp-native-audio-thinking-dialog", name: "Gemini 2.5 Flash Native Audio Thinking", type: "native_audio" }
+    {
+      id: "gemini-live-2.5-flash-preview",
+      name: "Gemini Live 2.5 Flash (Half-Cascade)",
+      type: "half_cascade",
+      recommended: true,
+      limits: "3 sessions, 1M TPM (Free)"
+    },
+    {
+      id: "gemini-2.0-flash-live-001",
+      name: "Gemini 2.0 Flash Live (Half-Cascade)",
+      type: "half_cascade",
+      recommended: true,
+      limits: "3 sessions, 1M TPM (Free)"
+    },
+    {
+      id: "gemini-2.5-flash-preview-native-audio-dialog",
+      name: "Gemini 2.5 Flash Native Audio Dialog",
+      type: "native_audio",
+      recommended: false,
+      limits: "⚠️ 1 session, 25K TPM (Free)",
+      warning: "Very restrictive limits"
+    },
+    {
+      id: "gemini-2.5-flash-exp-native-audio-thinking-dialog",
+      name: "Gemini 2.5 Flash Native Audio Thinking",
+      type: "native_audio",
+      recommended: false,
+      limits: "⚠️ 1 session, 10K TPM (Free)",
+      warning: "Extremely restrictive limits"
+    }
   ];
 
   // Available voices (expanded list)
@@ -120,6 +149,9 @@ export default function GeminiVoiceChat() {
         playAudioData(audioData);
       } else if (response.type === 'text') {
         setText(prev => prev + response.text + '\n');
+      } else if (response.type === 'token_usage') {
+        setTokenCount(response.data.total_tokens);
+        setModelLimits(response.data.limits);
       }
     };
 
@@ -337,6 +369,56 @@ export default function GeminiVoiceChat() {
           </Alert>
         )}
 
+        {/* Token Usage and Limits */}
+        {(tokenCount > 0 || modelLimits) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                📊 Token Usage & Model Limits
+                {modelLimits?.warning && (
+                  <span className="text-red-500 text-sm">⚠️ {modelLimits.warning}</span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{tokenCount.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Tokens Used</div>
+                </div>
+                {modelLimits && (
+                  <>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">{modelLimits.free_tier?.sessions || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">Max Sessions (Free)</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">
+                        {modelLimits.free_tier?.tpm ? (modelLimits.free_tier.tpm / 1000).toLocaleString() + 'K' : 'N/A'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">TPM Limit (Free)</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">{modelLimits.free_tier?.rpd || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">RPD Limit (Free)</div>
+                    </div>
+                  </>
+                )}
+              </div>
+              {modelLimits && (
+                <div className="mt-4 p-3 bg-muted rounded-md">
+                  <div className="text-sm">
+                    <strong>Model:</strong> {modelLimits.name}
+                    {modelLimits.recommended === false && (
+                      <span className="ml-2 text-red-600 font-semibold">⚠️ Not Recommended for Heavy Use</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardContent className="pt-6 space-y-4">
             {/* Model Selection */}
@@ -353,13 +435,21 @@ export default function GeminiVoiceChat() {
                 <SelectContent>
                   {models.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          model.type === 'native_audio' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {model.type === 'native_audio' ? 'Native Audio' : 'Half-Cascade'}
-                        </span>
-                        {model.name}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            model.recommended ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {model.recommended ? '✅ Recommended' : '⚠️ Limited'}
+                          </span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            model.type === 'native_audio' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {model.type === 'native_audio' ? 'Native Audio' : 'Half-Cascade'}
+                          </span>
+                        </div>
+                        <div className="font-medium">{model.name}</div>
+                        <div className="text-xs text-muted-foreground">{model.limits}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -462,7 +552,10 @@ export default function GeminiVoiceChat() {
                     setConfig(prev => ({ ...prev, enableThinking: checked as boolean }))}
                   disabled={isConnected}
                 />
-                <Label htmlFor="thinking-mode">Thinking Mode</Label>
+                <Label htmlFor="thinking-mode">
+                  Thinking Mode
+                  <span className="text-xs text-muted-foreground ml-1">(Native Audio only)</span>
+                </Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -476,16 +569,7 @@ export default function GeminiVoiceChat() {
                 <Label htmlFor="vad">Voice Activity Detection</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="transcription"
-                  checked={config.enableTranscription}
-                  onCheckedChange={(checked) =>
-                    setConfig(prev => ({ ...prev, enableTranscription: checked as boolean }))}
-                  disabled={isConnected}
-                />
-                <Label htmlFor="transcription">Audio Transcription</Label>
-              </div>
+
             </div>
           </CardContent>
         </Card>
