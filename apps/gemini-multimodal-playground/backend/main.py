@@ -1,9 +1,13 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
 import os
-import time
+import base64
+import struct
+import wave
+import io
+import aiohttp
 from dotenv import load_dotenv
 from websockets import connect
 from typing import Dict
@@ -21,6 +25,67 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Utility functions for audio processing
+def pcm_to_wav(pcm_base64: str, sample_rate: int = 24000) -> str:
+    """Convert PCM base64 data to WAV format and return as base64 - GitHub method"""
+    try:
+        # Decode base64 PCM data
+        pcm_bytes = base64.b64decode(pcm_base64)
+
+        # Convert bytes to samples (assuming 16-bit PCM)
+        samples = struct.unpack('<' + 'h' * (len(pcm_bytes) // 2), pcm_bytes)
+        pcm_byte_length = len(samples) * 2  # 16-bit = 2 bytes per sample
+
+        # Create WAV header manually like GitHub
+        wav_header = bytearray(44)
+
+        # "RIFF" chunk descriptor
+        wav_header[0:4] = b'RIFF'
+        # File length (header size + data size)
+        struct.pack_into('<I', wav_header, 4, 36 + pcm_byte_length)
+        # "WAVE" format
+        wav_header[8:12] = b'WAVE'
+        # "fmt " sub-chunk
+        wav_header[12:16] = b'fmt '
+        # Sub-chunk size
+        struct.pack_into('<I', wav_header, 16, 16)
+        # Audio format (PCM = 1)
+        struct.pack_into('<H', wav_header, 20, 1)
+        # Number of channels
+        struct.pack_into('<H', wav_header, 22, 1)
+        # Sample rate
+        struct.pack_into('<I', wav_header, 24, sample_rate)
+        # Byte rate
+        struct.pack_into('<I', wav_header, 28, sample_rate * 2)
+        # Block align
+        struct.pack_into('<H', wav_header, 32, 2)
+        # Bits per sample
+        struct.pack_into('<H', wav_header, 34, 16)
+        # "data" sub-chunk
+        wav_header[36:40] = b'data'
+        # Data size
+        struct.pack_into('<I', wav_header, 40, pcm_byte_length)
+
+        # Combine header and PCM data
+        wav_data = wav_header + pcm_bytes
+
+        # Encode to base64
+        return base64.b64encode(wav_data).decode('utf-8')
+    except Exception as e:
+        print(f"Error converting PCM to WAV: {e}")
+        return ""
+
+async def transcribe_pcm_data(pcm_base64: str) -> str:
+    """Transcribe PCM data using a simpler approach - just return empty for now"""
+    try:
+        # For now, let's disable transcription to avoid the error
+        # We'll implement a working solution later
+        print(f"Transcription disabled temporarily - PCM data length: {len(pcm_base64)}")
+        return ""
+    except Exception as e:
+        print(f"Transcription error: {e}")
+        return ""
+
 class GeminiConnection:
     def __init__(self, model="gemini-live-2.5-flash-preview"):
         self.api_key = os.environ.get("GEMINI_API_KEY")
@@ -32,6 +97,11 @@ class GeminiConnection:
         )
         self.ws = None
         self.config = None
+        self.accumulated_pcm_data = []  # Pour accumuler les fragments PCM de Gemini
+        self.accumulated_user_pcm_data = []  # Pour accumuler les fragments PCM utilisateur
+        # Système d'accumulation des transcriptions comme GitHub
+        self.accumulated_input_transcription = []  # Fragments de transcription utilisateur
+        self.accumulated_output_transcription = []  # Fragments de transcription Gemini
         self.token_count = 0
         self.session_start_time = None
 
@@ -106,17 +176,21 @@ class GeminiConnection:
             }
         }
 
-        # Add advanced features if enabled
-        # Note: Most advanced features are only available in native audio models
-        # For half-cascade models, we focus on basic functionality
+        # Add transcription configuration using official API + GitHub accumulation system
+        setup_message["setup"]["input_audio_transcription"] = {}
+        setup_message["setup"]["output_audio_transcription"] = {}
 
-        # VAD configuration (not supported in current API version)
-        # Will be implemented when v1alpha API is available
+        # Add advanced features for native audio models
+        if "native-audio" in self.model:
+            # Automatically enable thinking mode for thinking models
+            if "thinking" in self.model:
+                print("Thinking Mode automatically enabled for this model")
 
-        # Transcription
-        if self.config.get("enableTranscription", False):
-            setup_message["setup"]["generation_config"]["input_audio_transcription"] = {}
-            setup_message["setup"]["generation_config"]["output_audio_transcription"] = {}
+            # Affective Dialog for native audio models
+            if self.config.get("enableAffectiveDialog", False):
+                setup_message["setup"]["generation_config"]["enable_affective_dialog"] = True
+
+            # Proactive Audio removed - not supported by all Native Audio models
 
         # Language configuration (for half-cascade models)
         if self.config.get("language") and self.config["language"] != "auto":
@@ -140,7 +214,10 @@ class GeminiConnection:
             self.model = config["model"]
 
     async def send_audio(self, audio_data: str):
-        """Send audio data to Gemini"""
+        """Send audio data to Gemini and accumulate for user transcription"""
+        # Accumulate user audio data for transcription (same system as GitHub)
+        self.accumulated_user_pcm_data.append(audio_data)
+
         realtime_input_msg = {
             "realtime_input": {
                 "media_chunks": [
@@ -197,7 +274,7 @@ connections: Dict[str, GeminiConnection] = {}
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
-    
+
     try:
         # Create new Gemini connection for this client
         gemini = GeminiConnection()
@@ -282,32 +359,95 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                 }
                             }))
 
-                    # Forward audio data to client
+                    # Forward audio data to client and accumulate PCM data
                     try:
                         parts = response["serverContent"]["modelTurn"]["parts"]
                         for p in parts:
                             # Check connection state before each send
                             if websocket.client_state.value == 3:
                                 return
-                                
+
                             if "inlineData" in p:
                                 audio_data = p["inlineData"]["data"]
+                                # Accumulate PCM data for transcription
+                                if p["inlineData"]["mimeType"] == "audio/pcm;rate=24000":
+                                    gemini.accumulated_pcm_data.append(audio_data)
+
                                 await websocket.send_json({
                                     "type": "audio",
                                     "data": audio_data
                                 })
                             elif "text" in p:
-                                print(f"Received text: {p['text']}")
-                                await websocket.send_json({
-                                    "type": "text",
-                                    "data": p["text"]
-                                })
+                                text_content = p["text"]
+                                print(f"Received text: {text_content}")
+
+                                # Detect if this is thinking content (starts with **)
+                                if text_content.startswith("**") and "native-audio" in gemini.model and "thinking" in gemini.model:
+                                    print(f"Sending thinking to frontend: {text_content}")
+                                    await websocket.send_json({
+                                        "type": "thinking",
+                                        "data": text_content
+                                    })
+                                else:
+                                    print(f"Sending text to frontend: {text_content}")
+                                    await websocket.send_json({
+                                        "type": "text",
+                                        "data": text_content
+                                    })
                     except KeyError:
                         pass
 
-                    # Handle turn completion
+                    # Handle official API transcriptions - ACCUMULATE fragments like GitHub does with PCM
+                    try:
+                        if "inputTranscription" in response["serverContent"]:
+                            transcription_fragment = response["serverContent"]["inputTranscription"]["text"]
+                            print(f"Input transcription fragment: {transcription_fragment}")
+                            # Accumulate input transcription fragments (like GitHub accumulates PCM)
+                            gemini.accumulated_input_transcription.append(transcription_fragment)
+                    except KeyError:
+                        pass
+
+                    try:
+                        if "outputTranscription" in response["serverContent"]:
+                            transcription_fragment = response["serverContent"]["outputTranscription"]["text"]
+                            print(f"Output transcription fragment: {transcription_fragment}")
+                            # Accumulate output transcription fragments (like GitHub accumulates PCM)
+                            gemini.accumulated_output_transcription.append(transcription_fragment)
+                    except KeyError:
+                        pass
+
+                    # Handle turn completion - send accumulated transcriptions like GitHub
                     try:
                         if response["serverContent"]["turnComplete"]:
+                            # Send accumulated INPUT transcription (user message) - API officielle + GitHub system
+                            if gemini.accumulated_input_transcription:
+                                complete_input_transcription = "".join(gemini.accumulated_input_transcription)
+                                print(f"Complete input transcription: {complete_input_transcription}")
+                                await websocket.send_json({
+                                    "type": "user_message",
+                                    "data": complete_input_transcription
+                                })
+                                gemini.accumulated_input_transcription = []
+
+                            # Send accumulated OUTPUT transcription (assistant message) - API officielle + GitHub system
+                            if gemini.accumulated_output_transcription:
+                                complete_output_transcription = "".join(gemini.accumulated_output_transcription)
+                                print(f"Complete output transcription: {complete_output_transcription}")
+                                await websocket.send_json({
+                                    "type": "assistant_message",
+                                    "data": complete_output_transcription
+                                })
+                                gemini.accumulated_output_transcription = []
+
+                            # Clear accumulated PCM data (not needed for transcription anymore)
+                            if gemini.accumulated_user_pcm_data:
+                                print(f"Clearing user PCM data: {len(gemini.accumulated_user_pcm_data)} fragments")
+                                gemini.accumulated_user_pcm_data = []
+
+                            if gemini.accumulated_pcm_data:
+                                print(f"Clearing assistant PCM data: {len(gemini.accumulated_pcm_data)} fragments")
+                                gemini.accumulated_pcm_data = []
+
                             await websocket.send_json({
                                 "type": "turn_complete",
                                 "data": True
