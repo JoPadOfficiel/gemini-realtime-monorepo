@@ -586,6 +586,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                         import traceback
                                         traceback.print_exc()
 
+                                    # CRITICAL: Send interruption signal to Gemini to stop generation
+                                    try:
+                                        interruption_signal = {"interrupt": True}
+                                        await gemini.ws.send(json.dumps(interruption_signal))
+                                        print("🛑 INTERRUPTION SIGNAL SENT TO GEMINI - Generation should stop")
+                                    except Exception as e:
+                                        print(f"⚠️ Failed to send interruption to Gemini: {e}")
+
+                                    # Send interruption message to frontend
                                     interrupt_message = {
                                         "type": "interruption",
                                         "interrupted": True
