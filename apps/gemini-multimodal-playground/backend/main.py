@@ -138,6 +138,8 @@ class GeminiConnection:
         self.accumulated_input_transcription = []  # Fragments de transcription utilisateur
         self.accumulated_output_transcription = []  # Fragments de transcription Gemini
         self.token_count = 0
+        # Memory management flags
+        self.is_conversation_interrupted = False  # Track if current conversation was interrupted
         self.session_start_time = None
         # Memory manager will be initialized when needed
         self.memory_manager = None
@@ -534,78 +536,21 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     except KeyError:
                         pass
 
-                    # Handle interruptions - Send immediate interruption signal to frontend
+                    # Handle interruptions - Immediate processing, no memory save
                     try:
                         if "serverContent" in response:
                             if "interrupted" in response["serverContent"]:
                                 if response["serverContent"]["interrupted"]:
                                     print(f"[{time.time()}] Generation interrupted by user activity")
 
-                                    # Save conversation to memory on interruption (this is when conversations actually end)
-                                    try:
-                                        print("💾 INTERRUPTION - Attempting to save conversation to memory")
-                                        user_text = None
-                                        assistant_text = None
+                                    # Mark conversation as interrupted (no memory save for interrupted conversations)
+                                    gemini.is_conversation_interrupted = True
+                                    print("� Conversation marked as interrupted - will not be saved to memory")
 
-                                        # Get user message from accumulated input transcription
-                                        if gemini.accumulated_input_transcription:
-                                            user_text = "".join(gemini.accumulated_input_transcription).strip()
-                                            print(f"📝 User text from interruption: '{user_text[:50]}...'")
-
-                                        # Get assistant message from accumulated output transcription
-                                        if gemini.accumulated_output_transcription:
-                                            assistant_text = "".join(gemini.accumulated_output_transcription).strip()
-                                            print(f"📝 Assistant text from interruption: '{assistant_text[:50]}...'")
-
-                                        # Add to memory if we have both parts
-                                        if user_text and assistant_text and gemini.memory_manager:
-                                            # Skip very short or invalid messages
-                                            if (len(user_text) > 3 and len(assistant_text) > 3 and
-                                                user_text not in [".", " .", "  ."] and
-                                                assistant_text not in [".", " .", "  ."]):
-
-                                                messages = [
-                                                    {"role": "user", "content": user_text},
-                                                    {"role": "assistant", "content": assistant_text}
-                                                ]
-
-                                                print(f"💾 Saving interrupted conversation - User: {user_text[:30]}... Assistant: {assistant_text[:30]}...")
-
-                                                # Save memory asynchronously to avoid blocking interruption
-                                                async def save_memory_async():
-                                                    try:
-                                                        memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
-                                                        if memory_id:
-                                                            print(f"✅ Interrupted conversation saved to memory with ID: {memory_id}")
-                                                        else:
-                                                            print("⚠️ Failed to save interrupted conversation to memory")
-                                                    except Exception as e:
-                                                        print(f"Error in async memory save: {e}")
-
-                                                # Fire and forget - don't wait for memory save
-                                                asyncio.create_task(save_memory_async())
-                                            else:
-                                                print(f"Skipping interrupted memory save - messages too short (user: {len(user_text) if user_text else 0}, assistant: {len(assistant_text) if assistant_text else 0})")
-                                        else:
-                                            print(f"Skipping interrupted memory save - missing data (user: {'✓' if user_text else '✗'}, assistant: {'✓' if assistant_text else '✗'}, manager: {'✓' if gemini.memory_manager else '✗'})")
-
-                                    except Exception as e:
-                                        print(f"Error saving interrupted conversation to memory: {e}")
-                                        import traceback
-                                        traceback.print_exc()
-
-                                    # NOTE: We DON'T send interruption signals to Gemini
-                                    # Gemini sends US the interruption, we just handle it
-                                    print("🛑 INTERRUPTION DETECTED - Processing immediately")
-
-                                    # Send interruption message to frontend
-                                    interrupt_message = {
-                                        "type": "interruption",
-                                        "interrupted": True
-                                    }
-                                    print(f"🔴 SENDING INTERRUPTION MESSAGE TO FRONTEND: {interrupt_message}")
-                                    await websocket.send_json(interrupt_message)
-                                    print("✅ Interruption message sent successfully")
+                                    # Send immediate interruption message to frontend
+                                    await websocket.send_json({"interrupted": "True"})
+                                    print("� Interruption message sent to frontend")
+                                    continue  # Continue processing, don't block
                     except KeyError:
                         pass
 
@@ -632,48 +577,63 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     try:
                         if response["serverContent"]["turnComplete"]:
                             print("🔄 TURN COMPLETE detected - processing memory save")
-                            # FIRST: Save conversation to memory BEFORE clearing transcriptions
-                            try:
-                                # Get transcriptions from accumulated data BEFORE they are cleared
-                                user_text = None
-                                assistant_text = None
 
-                                # Get user message from accumulated input transcription
-                                if gemini.accumulated_input_transcription:
-                                    user_text = "".join(gemini.accumulated_input_transcription).strip()
+                            # Check if conversation was interrupted
+                            if gemini.is_conversation_interrupted:
+                                print("🚫 Skipping memory save - conversation was interrupted (rejected by user)")
+                                # Reset flag for next conversation
+                                gemini.is_conversation_interrupted = False
+                            else:
+                                # ONLY save complete, uninterrupted conversations to memory
+                                try:
+                                    # Get transcriptions from accumulated data BEFORE they are cleared
+                                    user_text = None
+                                    assistant_text = None
 
-                                # Get assistant message from accumulated output transcription
-                                if gemini.accumulated_output_transcription:
-                                    assistant_text = "".join(gemini.accumulated_output_transcription).strip()
+                                    # Get user message from accumulated input transcription
+                                    if gemini.accumulated_input_transcription:
+                                        user_text = "".join(gemini.accumulated_input_transcription).strip()
 
-                                # Add to memory if we have both parts (following reference approach)
-                                if user_text and assistant_text and gemini.memory_manager:
-                                    # Skip very short or invalid messages
-                                    if (len(user_text) > 3 and len(assistant_text) > 3 and
-                                        user_text not in [".", " .", "  ."] and
-                                        assistant_text not in [".", " .", "  ."]):
+                                    # Get assistant message from accumulated output transcription
+                                    if gemini.accumulated_output_transcription:
+                                        assistant_text = "".join(gemini.accumulated_output_transcription).strip()
 
-                                        messages = [
-                                            {"role": "user", "content": user_text},
-                                            {"role": "assistant", "content": assistant_text}
-                                        ]
+                                    # Add to memory if we have both parts (following reference approach)
+                                    if user_text and assistant_text and gemini.memory_manager:
+                                        # Skip very short or invalid messages
+                                        if (len(user_text) > 3 and len(assistant_text) > 3 and
+                                            user_text not in [".", " .", "  ."] and
+                                            assistant_text not in [".", " .", "  ."]):
 
-                                        print(f"💾 Saving conversation - User: {user_text[:50]}... Assistant: {assistant_text[:50]}...")
-                                        memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
+                                            messages = [
+                                                {"role": "user", "content": user_text},
+                                                {"role": "assistant", "content": assistant_text}
+                                            ]
 
-                                        if memory_id:
-                                            print(f"✅ Conversation saved to memory with ID: {memory_id}")
+                                            print(f"💾 Saving complete conversation - User: {user_text[:50]}... Assistant: {assistant_text[:50]}...")
+
+                                            # Make memory save fully asynchronous and non-blocking
+                                            async def save_complete_conversation():
+                                                try:
+                                                    memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
+                                                    if memory_id:
+                                                        print(f"✅ Complete conversation saved to memory with ID: {memory_id}")
+                                                    else:
+                                                        print("⚠️ Failed to save complete conversation to memory")
+                                                except Exception as e:
+                                                    print(f"Error in async complete conversation save: {e}")
+
+                                            # Fire and forget - don't block turn completion
+                                            asyncio.create_task(save_complete_conversation())
                                         else:
-                                            print("⚠️ Failed to save conversation to memory")
+                                            print(f"Skipping memory save - messages too short or invalid (user: {len(user_text) if user_text else 0}, assistant: {len(assistant_text) if assistant_text else 0})")
                                     else:
-                                        print(f"Skipping memory save - messages too short or invalid (user: {len(user_text) if user_text else 0}, assistant: {len(assistant_text) if assistant_text else 0})")
-                                else:
-                                    print(f"Skipping memory save - missing data (user: {'✓' if user_text else '✗'}, assistant: {'✓' if assistant_text else '✗'}, manager: {'✓' if gemini.memory_manager else '✗'})")
+                                        print(f"Skipping memory save - missing data (user: {'✓' if user_text else '✗'}, assistant: {'✓' if assistant_text else '✗'}, manager: {'✓' if gemini.memory_manager else '✗'})")
 
-                            except Exception as e:
-                                print(f"Error saving conversation to memory: {e}")
-                                import traceback
-                                traceback.print_exc()
+                                except Exception as e:
+                                    print(f"Error saving complete conversation to memory: {e}")
+                                    import traceback
+                                    traceback.print_exc()
 
                             # SECOND: Send accumulated INPUT transcription (user message) - API officielle + GitHub system
                             # Only if not already sent during interruption
