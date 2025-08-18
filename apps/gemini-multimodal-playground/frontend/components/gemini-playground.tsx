@@ -41,9 +41,10 @@ export default function GeminiVoiceChat() {
     enableVAD: true
   });
   const [isConnected, setIsConnected] = useState(false);
-  const wsRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const audioInputRef = useRef(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioInputRef = useRef<any>(null);
+  const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const clientId = useRef(crypto.randomUUID());
   const [videoEnabled, setVideoEnabled] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -107,7 +108,7 @@ export default function GeminiVoiceChat() {
     { code: "ar-XA", name: "Arabic" },
     { code: "ru-RU", name: "Russian" }
   ];
-  let audioBuffer = []
+  let audioBuffer: Float32Array[] = []
   let isPlaying = false
 
   const startStream = async (mode: 'audio' | 'camera' | 'screen') => {
@@ -179,6 +180,11 @@ export default function GeminiVoiceChat() {
         if (messageData.trim()) {
           setConversation(prev => [...prev, { role: 'assistant', content: messageData.trim() }]);
         }
+      } else if (response.type === 'interruption' || response.interrupted) {
+        // Handle interruption - immediately stop audio playback
+        console.log('🔴 INTERRUPTION RECEIVED - Stopping audio playback');
+        stopCurrentAudio();
+        clearAudioBuffer();
       } else if (response.type === 'turn_complete') {
         // When turn is complete, just clear any remaining accumulated text
         if (currentAssistantMessage.trim()) {
@@ -267,6 +273,9 @@ export default function GeminiVoiceChat() {
     }
 
     // stop ongoing audio playback
+    stopCurrentAudio();
+    clearAudioBuffer();
+
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -304,16 +313,46 @@ export default function GeminiVoiceChat() {
     isPlaying = true
     const audioData = audioBuffer.shift()
 
+    if (!audioData) {
+      isPlaying = false;
+      return;
+    }
+
     const buffer = audioContextRef.current.createBuffer(1, audioData.length, 24000);
     buffer.copyToChannel(audioData, 0);
 
     const source = audioContextRef.current.createBufferSource();
     source.buffer = buffer;
     source.connect(audioContextRef.current.destination);
+
+    // Store reference to current audio source for interruption
+    currentAudioSourceRef.current = source;
+
     source.onended = () => {
+      currentAudioSourceRef.current = null;
       playNextInQueue()
     }
     source.start();
+  };
+
+  // Function to stop current audio playback immediately
+  const stopCurrentAudio = () => {
+    if (currentAudioSourceRef.current) {
+      try {
+        currentAudioSourceRef.current.stop();
+        currentAudioSourceRef.current = null;
+        console.log('✅ Current audio stopped');
+      } catch (error) {
+        console.log('Audio already stopped or error stopping:', error);
+      }
+    }
+    isPlaying = false;
+  };
+
+  // Function to clear audio buffer
+  const clearAudioBuffer = () => {
+    audioBuffer.length = 0;
+    console.log('✅ Audio buffer cleared');
   };
 
   useEffect(() => {
