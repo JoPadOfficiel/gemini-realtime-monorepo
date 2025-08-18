@@ -61,7 +61,7 @@ export default function GeminiVoiceChat() {
   const [currentUserMessage, setCurrentUserMessage] = useState('');
   const [currentThinking, setCurrentThinking] = useState('');
 
-  // Available models - Cleaned up, no duplicates
+  // Available models
   const models = [
     {
       id: "gemini-live-2.5-flash-preview",
@@ -110,7 +110,7 @@ export default function GeminiVoiceChat() {
   ];
   let audioBuffer: Float32Array[] = []
   let isPlaying = false
-
+  
   const startStream = async (mode: 'audio' | 'camera' | 'screen') => {
 
     if (mode !== 'audio') {

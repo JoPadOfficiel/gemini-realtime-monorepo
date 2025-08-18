@@ -57,7 +57,7 @@ graph TD
 
 ### Logique de Sauvegarde Conditionnelle
 
-Le système mémoire implémente une sauvegarde conditionnelle basée sur la complétion de conversation :
+    Le système mémoire implémente une sauvegarde conditionnelle basée sur la complétion de conversation :
 
 ```python
 if response["serverContent"]["turnComplete"]:
