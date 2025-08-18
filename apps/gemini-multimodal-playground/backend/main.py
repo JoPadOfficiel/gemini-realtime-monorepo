@@ -237,10 +237,10 @@ class GeminiConnection:
         setup_message["setup"]["realtime_input_config"] = {
             "automatic_activity_detection": {
                 "disabled": False,  # Enabled by default
-                "start_of_speech_sensitivity": "START_SENSITIVITY_HIGH",  # Back to what worked
-                "end_of_speech_sensitivity": "END_SENSITIVITY_HIGH",      # Back to what worked
-                "prefix_padding_ms": 10,   # Back to what worked
-                "silence_duration_ms": 50  # Back to what worked
+                "start_of_speech_sensitivity": "START_SENSITIVITY_HIGH",  # High for quick detection
+                "end_of_speech_sensitivity": "END_SENSITIVITY_HIGH",      # High for immediate interruption
+                "prefix_padding_ms": 5,    # Lower for faster response
+                "silence_duration_ms": 45  # Much lower for immediate interruption
             },
             "activity_handling": "START_OF_ACTIVITY_INTERRUPTS"  # Enable interruptions
         }
@@ -570,12 +570,20 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                                 ]
 
                                                 print(f"💾 Saving interrupted conversation - User: {user_text[:30]}... Assistant: {assistant_text[:30]}...")
-                                                memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
 
-                                                if memory_id:
-                                                    print(f"✅ Interrupted conversation saved to memory with ID: {memory_id}")
-                                                else:
-                                                    print("⚠️ Failed to save interrupted conversation to memory")
+                                                # Save memory asynchronously to avoid blocking interruption
+                                                async def save_memory_async():
+                                                    try:
+                                                        memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
+                                                        if memory_id:
+                                                            print(f"✅ Interrupted conversation saved to memory with ID: {memory_id}")
+                                                        else:
+                                                            print("⚠️ Failed to save interrupted conversation to memory")
+                                                    except Exception as e:
+                                                        print(f"Error in async memory save: {e}")
+
+                                                # Fire and forget - don't wait for memory save
+                                                asyncio.create_task(save_memory_async())
                                             else:
                                                 print(f"Skipping interrupted memory save - messages too short (user: {len(user_text) if user_text else 0}, assistant: {len(assistant_text) if assistant_text else 0})")
                                         else:
@@ -586,13 +594,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                         import traceback
                                         traceback.print_exc()
 
-                                    # CRITICAL: Send interruption signal to Gemini to stop generation
-                                    try:
-                                        interruption_signal = {"interrupt": True}
-                                        await gemini.ws.send(json.dumps(interruption_signal))
-                                        print("🛑 INTERRUPTION SIGNAL SENT TO GEMINI - Generation should stop")
-                                    except Exception as e:
-                                        print(f"⚠️ Failed to send interruption to Gemini: {e}")
+                                    # NOTE: We DON'T send interruption signals to Gemini
+                                    # Gemini sends US the interruption, we just handle it
+                                    print("🛑 INTERRUPTION DETECTED - Processing immediately")
 
                                     # Send interruption message to frontend
                                     interrupt_message = {
