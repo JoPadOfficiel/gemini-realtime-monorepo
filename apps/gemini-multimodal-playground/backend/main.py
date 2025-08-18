@@ -8,6 +8,7 @@ import struct
 import wave
 import io
 import aiohttp
+import time
 from dotenv import load_dotenv
 from websockets import connect
 from typing import Dict
@@ -24,6 +25,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Session management storage
+session_handles = {}
+
+def save_session_handle(session_id: str, handle: str):
+    """Save session handle for resumption"""
+    session_handles[session_id] = handle
+    print(f"Saved session handle for {session_id}: {handle}")
+
+def get_session_handle(session_id: str) -> str:
+    """Get session handle for resumption"""
+    return session_handles.get(session_id, None)
 
 # Utility functions for audio processing
 def pcm_to_wav(pcm_base64: str, sample_rate: int = 24000) -> str:
@@ -87,9 +100,10 @@ async def transcribe_pcm_data(pcm_base64: str) -> str:
         return ""
 
 class GeminiConnection:
-    def __init__(self, model="gemini-live-2.5-flash-preview"):
+    def __init__(self, model="gemini-live-2.5-flash-preview", session_id=None):
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.model = model
+        self.session_id = session_id or "default_session"  # Add session_id for session management
         self.uri = (
             "wss://generativelanguage.googleapis.com/ws/"
             "google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent"
@@ -180,6 +194,29 @@ class GeminiConnection:
         setup_message["setup"]["input_audio_transcription"] = {}
         setup_message["setup"]["output_audio_transcription"] = {}
 
+        # Add session resumption configuration
+        previous_handle = get_session_handle(self.session_id)
+        if previous_handle:
+            setup_message["setup"]["session_resumption"] = {
+                "handle": previous_handle
+            }
+            print(f"Resuming session with handle: {previous_handle}")
+        else:
+            setup_message["setup"]["session_resumption"] = {}
+            print("Starting new session")
+
+        # Add VAD configuration (enabled by default)
+        setup_message["setup"]["realtime_input_config"] = {
+            "automatic_activity_detection": {
+                "disabled": False,  # Enabled by default
+                "start_of_speech_sensitivity": "START_SENSITIVITY_HIGH",  # Back to what worked
+                "end_of_speech_sensitivity": "END_SENSITIVITY_HIGH",      # Back to what worked
+                "prefix_padding_ms": 10,   # Back to what worked
+                "silence_duration_ms": 50  # Back to what worked
+            },
+            "activity_handling": "START_OF_ACTIVITY_INTERRUPTS"  # Enable interruptions
+        }
+
         # Add advanced features for native audio models
         if "native-audio" in self.model:
             # Automatically enable thinking mode for thinking models
@@ -218,6 +255,7 @@ class GeminiConnection:
         # Accumulate user audio data for transcription (same system as GitHub)
         self.accumulated_user_pcm_data.append(audio_data)
 
+        # Send audio data (VAD automatique gère l'interruption)
         realtime_input_msg = {
             "realtime_input": {
                 "media_chunks": [
@@ -229,6 +267,16 @@ class GeminiConnection:
             }
         }
         await self.ws.send(json.dumps(realtime_input_msg))
+
+    async def send_audio_stream_end(self):
+        """Send audio stream end signal for VAD when audio is paused > 1 second"""
+        realtime_input_msg = {
+            "realtime_input": {
+                "audio_stream_end": True
+            }
+        }
+        await self.ws.send(json.dumps(realtime_input_msg))
+        print("Sent audio stream end signal")
 
     async def receive(self):
         """Receive message from Gemini"""
@@ -277,7 +325,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
     try:
         # Create new Gemini connection for this client
-        gemini = GeminiConnection()
+        gemini = GeminiConnection(session_id=client_id)
         connections[client_id] = gemini
         
         # Wait for initial configuration
@@ -397,6 +445,32 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     except KeyError:
                         pass
 
+                    # Handle session resumption updates
+                    try:
+                        if "sessionResumptionUpdate" in response:
+                            update = response["sessionResumptionUpdate"]
+                            if update.get("resumable") and update.get("newHandle"):
+                                save_session_handle(gemini.session_id, update["newHandle"])
+                                print(f"Session resumption update: {update['newHandle']}")
+                    except KeyError:
+                        pass
+
+                    # Handle interruptions - Send immediate interruption signal to frontend
+                    try:
+                        if "serverContent" in response:
+                            if "interrupted" in response["serverContent"]:
+                                if response["serverContent"]["interrupted"]:
+                                    print(f"[{time.time()}] Generation interrupted by user activity")
+                                    interrupt_message = {
+                                        "type": "interruption",
+                                        "interrupted": True
+                                    }
+                                    print(f"🔴 SENDING INTERRUPTION MESSAGE TO FRONTEND: {interrupt_message}")
+                                    await websocket.send_json(interrupt_message)
+                                    print("✅ Interruption message sent successfully")
+                    except KeyError:
+                        pass
+
                     # Handle official API transcriptions - ACCUMULATE fragments like GitHub does with PCM
                     try:
                         if "inputTranscription" in response["serverContent"]:
@@ -420,13 +494,18 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     try:
                         if response["serverContent"]["turnComplete"]:
                             # Send accumulated INPUT transcription (user message) - API officielle + GitHub system
+                            # Only if not already sent during interruption
                             if gemini.accumulated_input_transcription:
                                 complete_input_transcription = "".join(gemini.accumulated_input_transcription)
-                                print(f"Complete input transcription: {complete_input_transcription}")
-                                await websocket.send_json({
-                                    "type": "user_message",
-                                    "data": complete_input_transcription
-                                })
+                                # Don't send if it's just a point (interruption artifact)
+                                if complete_input_transcription.strip() not in [".", " .", "  ."]:
+                                    print(f"Complete input transcription: {complete_input_transcription}")
+                                    await websocket.send_json({
+                                        "type": "user_message",
+                                        "data": complete_input_transcription
+                                    })
+                                else:
+                                    print(f"Skipping interruption artifact: '{complete_input_transcription}'")
                                 gemini.accumulated_input_transcription = []
 
                             # Send accumulated OUTPUT transcription (assistant message) - API officielle + GitHub system
@@ -454,6 +533,18 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             })
                     except KeyError:
                         pass
+
+                    # Handle GoAway message (connection will be terminated soon)
+                    try:
+                        if "goAway" in response:
+                            time_left = response["goAway"].get("timeLeft", "unknown")
+                            print(f"Server will disconnect soon. Time left: {time_left}")
+                            await websocket.send_json({
+                                "type": "go_away",
+                                "data": {"timeLeft": time_left}
+                            })
+                    except KeyError:
+                        pass
             except Exception as e:
                 print(f"Error receiving from Gemini: {e}")
 
@@ -477,7 +568,7 @@ async def health():
 @app.get("/model-limits/{model_name}")
 async def get_model_limits(model_name: str):
     """Get rate limits for a specific model"""
-    dummy_connection = GeminiConnection(model_name)
+    dummy_connection = GeminiConnection(model_name, session_id="dummy")
     limits = dummy_connection.get_model_limits()
     return {
         "model": model_name,
