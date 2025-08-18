@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, StopCircle, Video, Monitor } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { base64ToFloat32Array, float32ToPcm16 } from '@/lib/utils';
+import { base64ToFloat32Array, float32ToPcm16, GeminiApiService } from '@/lib/utils';
 
 interface Config {
   systemPrompt: string;
@@ -61,6 +61,10 @@ export default function GeminiVoiceChat() {
   const [currentUserMessage, setCurrentUserMessage] = useState('');
   const [currentThinking, setCurrentThinking] = useState('');
 
+  // API Service and polling for hybrid architecture
+  const [apiService] = useState(() => GeminiApiService.getInstance());
+  const [tokenPollingInterval, setTokenPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
   // Available models
   const models = [
     {
@@ -110,7 +114,29 @@ export default function GeminiVoiceChat() {
   ];
   let audioBuffer: Float32Array[] = []
   let isPlaying = false
-  
+
+  // Token polling functions for hybrid architecture
+  const startTokenPolling = useCallback(() => {
+    const interval = setInterval(async () => {
+      try {
+        const tokenData = await apiService.getTokenUsage(clientId.current);
+        setTokenCount(tokenData.total_tokens);
+        setModelLimits(tokenData.limits);
+      } catch (error) {
+        console.error('Token polling failed:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    setTokenPollingInterval(interval);
+  }, [apiService]);
+
+  const stopTokenPolling = useCallback(() => {
+    if (tokenPollingInterval) {
+      clearInterval(tokenPollingInterval);
+      setTokenPollingInterval(null);
+    }
+  }, [tokenPollingInterval]);
+
   const startStream = async (mode: 'audio' | 'camera' | 'screen') => {
 
     if (mode !== 'audio') {
@@ -136,6 +162,9 @@ export default function GeminiVoiceChat() {
 
       setIsStreaming(true);
       setIsConnected(true);
+
+      // Start token polling for hybrid architecture
+      startTokenPolling();
 
       // Add initial user message to conversation only if not already added
       setConversation(prev => {
@@ -194,10 +223,8 @@ export default function GeminiVoiceChat() {
         // Clear thinking state (thinking messages are added immediately)
         setCurrentThinking('');
         setCurrentUserMessage(''); // Clear user message state
-      } else if (response.type === 'token_usage') {
-        setTokenCount(response.data.total_tokens);
-        setModelLimits(response.data.limits);
       }
+      // Token usage now handled by REST API polling - removed WebSocket handling
     };
 
     wsRef.current.onerror = (error) => {
@@ -289,6 +316,9 @@ export default function GeminiVoiceChat() {
     setIsStreaming(false);
     setIsConnected(false);
     setChatMode(null);
+
+    // Stop token polling for hybrid architecture
+    stopTokenPolling();
 
     // Keep conversation history but clear current text and accumulated messages
     setText('');
