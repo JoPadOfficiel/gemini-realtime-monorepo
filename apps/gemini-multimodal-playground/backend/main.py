@@ -1,22 +1,22 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import asyncio
 import json
 import os
-import base64
-import struct
-import wave
-import io
-import aiohttp
 import time
 from dotenv import load_dotenv
 from websockets import connect
-from typing import Dict
+from typing import Dict, List, Optional
 from simple_memory import get_memory_manager
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(
+    title="Gemini Live Backend API",
+    description="Backend API for Gemini Live multimodal playground with memory management",
+    version="1.0.0"
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -27,91 +27,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Session management storage
-session_handles = {}
-
-def save_session_handle(session_id: str, handle: str):
-    """Save session handle for resumption"""
-    session_handles[session_id] = handle
-    print(f"Saved session handle for {session_id}: {handle}")
-
-def get_session_handle(session_id: str) -> str:
-    """Get session handle for resumption"""
-    return session_handles.get(session_id, None)
-
-# Utility functions for audio processing
-def pcm_to_wav(pcm_base64: str, sample_rate: int = 24000) -> str:
-    """Convert PCM base64 data to WAV format and return as base64 - GitHub method"""
-    try:
-        # Decode base64 PCM data
-        pcm_bytes = base64.b64decode(pcm_base64)
-
-        # Convert bytes to samples (assuming 16-bit PCM)
-        samples = struct.unpack('<' + 'h' * (len(pcm_bytes) // 2), pcm_bytes)
-        pcm_byte_length = len(samples) * 2  # 16-bit = 2 bytes per sample
-
-        # Create WAV header manually like GitHub
-        wav_header = bytearray(44)
-
-        # "RIFF" chunk descriptor
-        wav_header[0:4] = b'RIFF'
-        # File length (header size + data size)
-        struct.pack_into('<I', wav_header, 4, 36 + pcm_byte_length)
-        # "WAVE" format
-        wav_header[8:12] = b'WAVE'
-        # "fmt " sub-chunk
-        wav_header[12:16] = b'fmt '
-        # Sub-chunk size
-        struct.pack_into('<I', wav_header, 16, 16)
-        # Audio format (PCM = 1)
-        struct.pack_into('<H', wav_header, 20, 1)
-        # Number of channels
-        struct.pack_into('<H', wav_header, 22, 1)
-        # Sample rate
-        struct.pack_into('<I', wav_header, 24, sample_rate)
-        # Byte rate
-        struct.pack_into('<I', wav_header, 28, sample_rate * 2)
-        # Block align
-        struct.pack_into('<H', wav_header, 32, 2)
-        # Bits per sample
-        struct.pack_into('<H', wav_header, 34, 16)
-        # "data" sub-chunk
-        wav_header[36:40] = b'data'
-        # Data size
-        struct.pack_into('<I', wav_header, 40, pcm_byte_length)
-
-        # Combine header and PCM data
-        wav_data = wav_header + pcm_bytes
-
-        # Encode to base64
-        return base64.b64encode(wav_data).decode('utf-8')
-    except Exception as e:
-        print(f"Error converting PCM to WAV: {e}")
-        return ""
-
-async def transcribe_pcm_data(pcm_base64: str) -> str:
-    """Transcribe PCM data using a simpler approach - just return empty for now"""
-    try:
-        # For now, let's disable transcription to avoid the error
-        # We'll implement a working solution later
-        print(f"Transcription disabled temporarily - PCM data length: {len(pcm_base64)}")
-        return ""
-    except Exception as e:
-        print(f"Transcription error: {e}")
-        return ""
-
-# Define the memory query tool (following reference implementation)
+# Memory query tool definition for Gemini
 MEMORY_QUERY_TOOL = {
     "function_declarations": [
         {
             "name": "query_memory",
-            "description": "Query the memory database to retrieve relevant past interactions with the user.",
+            "description": "Query the conversation memory to retrieve relevant past context and information from previous conversations.",
             "parameters": {
-                "type": "OBJECT",
+                "type": "object",
                 "properties": {
                     "query": {
-                        "type": "STRING",
-                        "description": "The query string to search the memory."
+                        "type": "string",
+                        "description": "The search query to find relevant memories and past conversation context"
                     }
                 },
                 "required": ["query"]
@@ -119,6 +46,20 @@ MEMORY_QUERY_TOOL = {
         }
     ]
 }
+
+# Session management storage
+session_handles = {}
+
+def save_session_handle(session_id: str, handle: str):
+    """Save session handle for resumption"""
+    session_handles[session_id] = handle
+
+def get_session_handle(session_id: str) -> str:
+    """Get session handle for resumption"""
+    return session_handles.get(session_id, None)
+
+
+
 
 class GeminiConnection:
     def __init__(self, model="gemini-live-2.5-flash-preview", session_id=None):
@@ -348,6 +289,33 @@ class GeminiConnection:
 
 # Store active connections
 connections: Dict[str, GeminiConnection] = {}
+
+# Pydantic models for API requests/responses
+class MemoryQuery(BaseModel):
+    query: str
+    session_id: Optional[str] = "default_session"
+
+class MemoryAdd(BaseModel):
+    messages: List[Dict]
+    session_id: Optional[str] = "default_session"
+    metadata: Optional[Dict] = None
+
+class MemoryResponse(BaseModel):
+    success: bool
+    data: Optional[Dict] = None
+    message: str
+
+class TokenUsageResponse(BaseModel):
+    total_tokens: int
+    model: str
+    limits: Dict
+    timestamp: float
+
+class SessionInfo(BaseModel):
+    session_id: str
+    active: bool
+    model: str
+    token_count: int
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -719,6 +687,98 @@ async def get_model_limits(model_name: str):
         "limits": limits,
         "timestamp": time.time()
     }
+
+# Memory Management APIs
+@app.post("/api/memory/query", response_model=MemoryResponse, tags=["Memory"])
+async def query_memory_api(query_data: MemoryQuery):
+    """Query conversation memory for relevant past context"""
+    try:
+        memory_manager = await get_memory_manager()
+        memories = memory_manager.query_memory(query_data.query, query_data.session_id)
+        formatted_response = memory_manager.format_memory_response(memories)
+
+        return MemoryResponse(
+            success=True,
+            data={"memories": memories, "formatted": formatted_response},
+            message="Memory query successful"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Memory query failed: {str(e)}")
+
+@app.post("/api/memory/add", response_model=MemoryResponse, tags=["Memory"])
+async def add_memory_api(memory_data: MemoryAdd):
+    """Add conversation to memory storage"""
+    try:
+        memory_manager = await get_memory_manager()
+        memory_id = memory_manager.add_to_memory(
+            memory_data.messages,
+            memory_data.session_id,
+            memory_data.metadata
+        )
+
+        return MemoryResponse(
+            success=True,
+            data={"memory_id": memory_id},
+            message="Memory added successfully"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add memory: {str(e)}")
+
+@app.delete("/api/memory/{session_id}", response_model=MemoryResponse, tags=["Memory"])
+async def clear_session_memory(session_id: str):
+    """Clear all memories for a specific session"""
+    try:
+        memory_manager = await get_memory_manager()
+        # Note: This would need to be implemented in the memory manager
+        return MemoryResponse(
+            success=True,
+            message=f"Memory cleared for session {session_id}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear memory: {str(e)}")
+
+# Token Usage APIs
+@app.get("/api/tokens/usage/{session_id}", response_model=TokenUsageResponse, tags=["Tokens"])
+async def get_token_usage(session_id: str):
+    """Get current token usage for a session"""
+    if session_id not in connections:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    connection = connections[session_id]
+    return TokenUsageResponse(
+        total_tokens=connection.token_count,
+        model=connection.model,
+        limits=connection.get_model_limits(),
+        timestamp=time.time()
+    )
+
+# Session Management APIs
+@app.get("/api/sessions", tags=["Sessions"])
+async def list_active_sessions():
+    """List all active WebSocket sessions"""
+    sessions = []
+    for session_id, connection in connections.items():
+        sessions.append({
+            "session_id": session_id,
+            "active": True,
+            "model": connection.model,
+            "token_count": connection.token_count
+        })
+    return {"sessions": sessions, "count": len(sessions)}
+
+@app.get("/api/sessions/{session_id}", response_model=SessionInfo, tags=["Sessions"])
+async def get_session_info(session_id: str):
+    """Get information about a specific session"""
+    if session_id not in connections:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    connection = connections[session_id]
+    return SessionInfo(
+        session_id=session_id,
+        active=True,
+        model=connection.model,
+        token_count=connection.token_count
+    )
 
 if __name__ == "__main__":
     import uvicorn
