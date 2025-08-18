@@ -74,7 +74,7 @@ app = FastAPI(
     terms_of_service="https://developers.generativeai.google/terms",
     contact={
         "name": "Gemini Live Backend API Support",
-        "url": "https://github.com/your-repo/gemini-realtime-monorepo",
+        "url": "https://github.com/jopadofficiel/gemini-realtime-monorepo",
         "email": "support@example.com",
     },
     license_info={
