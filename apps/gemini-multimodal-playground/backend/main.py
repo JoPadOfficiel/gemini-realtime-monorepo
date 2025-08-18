@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 import asyncio
 import json
 import os
@@ -15,10 +15,76 @@ from async_memory import async_memory_queue, TaskStatus
 
 load_dotenv()
 
+# Tags metadata for better API organization
+tags_metadata = [
+    {
+        "name": "Health",
+        "description": "Health check and system status endpoints",
+    },
+    {
+        "name": "Models",
+        "description": "Model information and rate limits management",
+    },
+    {
+        "name": "Memory",
+        "description": "Conversation memory management operations. Store, query, and manage conversation history with long-term memory capabilities.",
+    },
+    {
+        "name": "Async",
+        "description": "Asynchronous operations for improved performance. Non-blocking memory operations that return immediately with task tracking.",
+    },
+    {
+        "name": "Tokens",
+        "description": "Token usage tracking and monitoring for different AI models",
+    },
+    {
+        "name": "Sessions",
+        "description": "WebSocket session management and monitoring. Track active connections, session states, and connection health.",
+    },
+]
+
 app = FastAPI(
     title="Gemini Live Backend API",
-    description="Backend API for Gemini Live multimodal playground with memory management",
-    version="1.0.0"
+    description="""
+    ## Backend API for Gemini Live Multimodal Playground
+
+    This API provides comprehensive backend services for real-time multimodal AI conversations using Google's Gemini Live API.
+
+    ### Key Features
+
+    * **Real-time WebSocket Communication**: Bidirectional audio, text, and image streaming
+    * **Long-term Memory Management**: Persistent conversation memory with intelligent querying
+    * **Session Management**: Robust session handling with resumption capabilities
+    * **Token Usage Tracking**: Monitor and track API usage across different models
+    * **Asynchronous Operations**: Non-blocking memory operations for optimal performance
+    * **Multi-model Support**: Support for various Gemini models with automatic rate limit detection
+
+    ### Architecture
+
+    - **WebSocket Endpoint**: `/ws/{client_id}` for real-time communication
+    - **REST APIs**: Comprehensive REST endpoints for memory, tokens, and session management
+    - **Memory System**: PostgreSQL-based persistent memory with Mem0 integration
+    - **Performance Optimized**: Async operations and connection pooling
+
+    ### Authentication
+
+    Requires valid `GEMINI_API_KEY` environment variable for Google AI Studio access.
+    """,
+    version="1.2.0",
+    terms_of_service="https://developers.generativeai.google/terms",
+    contact={
+        "name": "Gemini Live Backend API Support",
+        "url": "https://github.com/your-repo/gemini-realtime-monorepo",
+        "email": "support@example.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    openapi_tags=tags_metadata,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 # Add CORS middleware
@@ -308,30 +374,149 @@ session_states: Dict[str, SessionState] = {}
 
 # Pydantic models for API requests/responses
 class MemoryQuery(BaseModel):
-    query: str
-    session_id: Optional[str] = "default_session"
+    """Query model for searching conversation memory"""
+
+    query: str = Field(
+        ...,
+        description="Search query to find relevant memories and past conversation context"
+    )
+    session_id: Optional[str] = Field(
+        default="default_session",
+        description="Session identifier to scope the memory search"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "What did we discuss about machine learning?",
+                "session_id": "user_123_session"
+            }
+        }
+    )
 
 class MemoryAdd(BaseModel):
-    messages: List[Dict]
-    session_id: Optional[str] = "default_session"
-    metadata: Optional[Dict] = None
+    """Model for adding conversation messages to memory"""
+
+    messages: List[Dict] = Field(
+        ...,
+        description="List of conversation messages to store in memory"
+    )
+    session_id: Optional[str] = Field(
+        default="default_session",
+        description="Session identifier for memory organization"
+    )
+    metadata: Optional[Dict] = Field(
+        default=None,
+        description="Additional metadata to store with the conversation"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "messages": [
+                    {"role": "user", "content": "What is machine learning?"},
+                    {"role": "assistant", "content": "Machine learning is a subset of artificial intelligence..."}
+                ],
+                "session_id": "user_123_session",
+                "metadata": {"topic": "AI", "importance": "high"}
+            }
+        }
+    )
 
 class MemoryResponse(BaseModel):
-    success: bool
-    data: Optional[Dict] = None
-    message: str
+    """Standard response model for memory operations"""
+
+    success: bool = Field(
+        ...,
+        description="Whether the memory operation was successful"
+    )
+    data: Optional[Dict] = Field(
+        default=None,
+        description="Response data containing memories or operation results"
+    )
+    message: str = Field(
+        ...,
+        description="Human-readable message describing the operation result"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "data": {
+                    "memories": ["Previous conversation about AI..."],
+                    "count": 3
+                },
+                "message": "Memory query successful"
+            }
+        }
+    )
 
 class TokenUsageResponse(BaseModel):
-    total_tokens: int
-    model: str
-    limits: Dict
-    timestamp: float
+    """Response model for token usage information"""
+
+    total_tokens: int = Field(
+        ...,
+        description="Total number of tokens used in the session"
+    )
+    model: str = Field(
+        ...,
+        description="AI model being used"
+    )
+    limits: Dict = Field(
+        ...,
+        description="Rate limits and quotas for the current model"
+    )
+    timestamp: float = Field(
+        ...,
+        description="Unix timestamp when the usage was recorded"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_tokens": 1250,
+                "model": "gemini-2.0-flash-live-001",
+                "limits": {
+                    "sessions": 50,
+                    "tpm": 4000000,
+                    "rpd": "Unlimited"
+                },
+                "timestamp": 1703123456.789
+            }
+        }
+    )
 
 class SessionInfo(BaseModel):
-    session_id: str
-    active: bool
-    model: str
-    token_count: int
+    """Information about a WebSocket session"""
+
+    session_id: str = Field(
+        ...,
+        description="Unique identifier for the session"
+    )
+    active: bool = Field(
+        ...,
+        description="Whether the WebSocket connection is currently active"
+    )
+    model: str = Field(
+        ...,
+        description="AI model being used in this session"
+    )
+    token_count: int = Field(
+        ...,
+        description="Number of tokens used in this session"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "session_id": "user_123_session",
+                "active": True,
+                "model": "gemini-2.0-flash-live-001",
+                "token_count": 1250
+            }
+        }
+    )
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -799,13 +984,27 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 session_states[client_id].status = "disconnected"
                 print(f"🔍 DEBUG - Session {client_id} marked as disconnected")
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 async def health():
-    return {"status": "healthy"}
+    """
+    Health check endpoint
 
-@app.get("/model-limits/{model_name}")
+    Returns the current health status of the API server.
+    Used for monitoring and load balancer health checks.
+    """
+    return {"status": "healthy", "timestamp": time.time()}
+
+@app.get("/model-limits/{model_name}", tags=["Models"])
 async def get_model_limits(model_name: str):
-    """Get rate limits for a specific model"""
+    """
+    Get rate limits for a specific Gemini model
+
+    Returns detailed information about rate limits, quotas, and recommendations
+    for the specified AI model. Useful for understanding usage constraints
+    before establishing connections.
+
+    - **model_name**: The Gemini model identifier (e.g., 'gemini-2.0-flash-live-001')
+    """
     dummy_connection = GeminiConnection(model_name, session_id="dummy")
     limits = dummy_connection.get_model_limits()
     return {
