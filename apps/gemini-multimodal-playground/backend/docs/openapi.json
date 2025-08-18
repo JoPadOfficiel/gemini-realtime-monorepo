@@ -1,0 +1,776 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gemini Live Backend API",
+    "description": "\n    ## Backend API for Gemini Live Multimodal Playground\n\n    This API provides comprehensive backend services for real-time multimodal AI conversations using Google's Gemini Live API.\n\n    ### Key Features\n\n    * **Real-time WebSocket Communication**: Bidirectional audio, text, and image streaming\n    * **Long-term Memory Management**: Persistent conversation memory with intelligent querying\n    * **Session Management**: Robust session handling with resumption capabilities\n    * **Token Usage Tracking**: Monitor and track API usage across different models\n    * **Asynchronous Operations**: Non-blocking memory operations for optimal performance\n    * **Multi-model Support**: Support for various Gemini models with automatic rate limit detection\n\n    ### Architecture\n\n    - **WebSocket Endpoint**: `/ws/{client_id}` for real-time communication\n    - **REST APIs**: Comprehensive REST endpoints for memory, tokens, and session management\n    - **Memory System**: PostgreSQL-based persistent memory with Mem0 integration\n    - **Performance Optimized**: Async operations and connection pooling\n\n    ### Authentication\n\n    Requires valid `GEMINI_API_KEY` environment variable for Google AI Studio access.\n    ",
+    "termsOfService": "https://developers.generativeai.google/terms",
+    "contact": {
+      "name": "Gemini Live Backend API Support",
+      "url": "https://github.com/your-repo/gemini-realtime-monorepo",
+      "email": "support@example.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "1.2.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health",
+        "description": "Health check endpoint\n\nReturns the current health status of the API server.\nUsed for monitoring and load balancer health checks.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/model-limits/{model_name}": {
+      "get": {
+        "tags": [
+          "Models"
+        ],
+        "summary": "Get Model Limits",
+        "description": "Get rate limits for a specific Gemini model\n\nReturns detailed information about rate limits, quotas, and recommendations\nfor the specified AI model. Useful for understanding usage constraints\nbefore establishing connections.\n\n- **model_name**: The Gemini model identifier (e.g., 'gemini-2.0-flash-live-001')",
+        "operationId": "get_model_limits_model_limits__model_name__get",
+        "parameters": [
+          {
+            "name": "model_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/query": {
+      "post": {
+        "tags": [
+          "Memory"
+        ],
+        "summary": "Query Memory Api",
+        "description": "Query conversation memory for relevant past context",
+        "operationId": "query_memory_api_api_memory_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/add": {
+      "post": {
+        "tags": [
+          "Memory"
+        ],
+        "summary": "Add Memory Api",
+        "description": "Add conversation to memory storage",
+        "operationId": "add_memory_api_api_memory_add_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryAdd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/{session_id}": {
+      "delete": {
+        "tags": [
+          "Memory"
+        ],
+        "summary": "Clear Session Memory",
+        "description": "Clear all memories for a specific session",
+        "operationId": "clear_session_memory_api_memory__session_id__delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/save-async": {
+      "post": {
+        "tags": [
+          "Memory",
+          "Async"
+        ],
+        "summary": "Save Memory Async",
+        "description": "Queue memory save operation asynchronously (non-blocking)\nResolves UI blocking issues - returns immediately with task_id\nPerformance improvement: Eliminates 200-500ms synchronous delays",
+        "operationId": "save_memory_async_api_memory_save_async_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryAdd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/query-async": {
+      "post": {
+        "tags": [
+          "Memory",
+          "Async"
+        ],
+        "summary": "Query Memory Async",
+        "description": "Queue memory query operation asynchronously (non-blocking)\nReturns task_id immediately for status tracking",
+        "operationId": "query_memory_async_api_memory_query_async_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory/task/{task_id}": {
+      "get": {
+        "tags": [
+          "Memory",
+          "Async"
+        ],
+        "summary": "Get Memory Task Status",
+        "description": "Get status and result of asynchronous memory operation\nUse this to check if queued operations are complete",
+        "operationId": "get_memory_task_status_api_memory_task__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tokens/usage/{session_id}": {
+      "get": {
+        "tags": [
+          "Tokens"
+        ],
+        "summary": "Get Token Usage",
+        "description": "Get current token usage for a session",
+        "operationId": "get_token_usage_api_tokens_usage__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenUsageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "List Active Sessions",
+        "description": "List all active WebSocket sessions and session states",
+        "operationId": "list_active_sessions_api_sessions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}/status": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Get Session Status",
+        "description": "Get detailed status of a specific session",
+        "operationId": "get_session_status_api_sessions__session_id__status_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Get Session Info",
+        "description": "Get information about a specific session",
+        "operationId": "get_session_info_api_sessions__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MemoryAdd": {
+        "properties": {
+          "messages": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "List of conversation messages to store in memory"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "Session identifier for memory organization",
+            "default": "default_session"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Additional metadata to store with the conversation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "title": "MemoryAdd",
+        "description": "Model for adding conversation messages to memory",
+        "example": {
+          "messages": [
+            {
+              "content": "What is machine learning?",
+              "role": "user"
+            },
+            {
+              "content": "Machine learning is a subset of artificial intelligence...",
+              "role": "assistant"
+            }
+          ],
+          "metadata": {
+            "importance": "high",
+            "topic": "AI"
+          },
+          "session_id": "user_123_session"
+        }
+      },
+      "MemoryQuery": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "Search query to find relevant memories and past conversation context"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "Session identifier to scope the memory search",
+            "default": "default_session"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "MemoryQuery",
+        "description": "Query model for searching conversation memory",
+        "example": {
+          "query": "What did we discuss about machine learning?",
+          "session_id": "user_123_session"
+        }
+      },
+      "MemoryResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the memory operation was successful"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data",
+            "description": "Response data containing memories or operation results"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable message describing the operation result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "MemoryResponse",
+        "description": "Standard response model for memory operations",
+        "example": {
+          "data": {
+            "count": 3,
+            "memories": [
+              "Previous conversation about AI..."
+            ]
+          },
+          "message": "Memory query successful",
+          "success": true
+        }
+      },
+      "SessionInfo": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Unique identifier for the session"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "description": "Whether the WebSocket connection is currently active"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "AI model being used in this session"
+          },
+          "token_count": {
+            "type": "integer",
+            "title": "Token Count",
+            "description": "Number of tokens used in this session"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "active",
+          "model",
+          "token_count"
+        ],
+        "title": "SessionInfo",
+        "description": "Information about a WebSocket session",
+        "example": {
+          "active": true,
+          "model": "gemini-2.0-flash-live-001",
+          "session_id": "user_123_session",
+          "token_count": 1250
+        }
+      },
+      "TokenUsageResponse": {
+        "properties": {
+          "total_tokens": {
+            "type": "integer",
+            "title": "Total Tokens",
+            "description": "Total number of tokens used in the session"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "AI model being used"
+          },
+          "limits": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Limits",
+            "description": "Rate limits and quotas for the current model"
+          },
+          "timestamp": {
+            "type": "number",
+            "title": "Timestamp",
+            "description": "Unix timestamp when the usage was recorded"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_tokens",
+          "model",
+          "limits",
+          "timestamp"
+        ],
+        "title": "TokenUsageResponse",
+        "description": "Response model for token usage information",
+        "example": {
+          "limits": {
+            "rpd": "Unlimited",
+            "sessions": 50,
+            "tpm": 4000000
+          },
+          "model": "gemini-2.0-flash-live-001",
+          "timestamp": 1703123456.789,
+          "total_tokens": 1250
+        }
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check and system status endpoints"
+    },
+    {
+      "name": "Models",
+      "description": "Model information and rate limits management"
+    },
+    {
+      "name": "Memory",
+      "description": "Conversation memory management operations. Store, query, and manage conversation history with long-term memory capabilities."
+    },
+    {
+      "name": "Async",
+      "description": "Asynchronous operations for improved performance. Non-blocking memory operations that return immediately with task tracking."
+    },
+    {
+      "name": "Tokens",
+      "description": "Token usage tracking and monitoring for different AI models"
+    },
+    {
+      "name": "Sessions",
+      "description": "WebSocket session management and monitoring. Track active connections, session states, and connection health."
+    }
+  ]
+}

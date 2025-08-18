@@ -1,0 +1,86 @@
+name: Backend API Documentation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/gemini-multimodal-playground/backend/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/gemini-multimodal-playground/backend/**'
+
+env:
+  BACKEND_DIR: apps/gemini-multimodal-playground/backend
+
+jobs:
+  generate-docs:
+    name: Generate API Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Generate OpenAPI documentation
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        python generate_openapi.py --validate
+        python generate_openapi.py --output docs/openapi-pretty.json --pretty --validate
+        
+    - name: Validate OpenAPI specification
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        # Check if files were generated
+        if [ ! -f "docs/openapi.json" ]; then
+          echo "ERROR: OpenAPI specification not generated"
+          exit 1
+        fi
+
+        # Validate JSON format
+        if ! python -m json.tool docs/openapi.json > /dev/null; then
+          echo "ERROR: Invalid JSON in OpenAPI specification"
+          exit 1
+        fi
+
+        echo "SUCCESS: OpenAPI specification validation passed"
+
+    - name: Generate documentation summary
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        echo "## API Documentation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Extract API info from OpenAPI spec
+        api_title=$(python -c "import json; spec=json.load(open('docs/openapi.json')); print(spec['info']['title'])")
+        api_version=$(python -c "import json; spec=json.load(open('docs/openapi.json')); print(spec['info']['version'])")
+        endpoint_count=$(python -c "import json; spec=json.load(open('docs/openapi.json')); print(len(spec['paths']))")
+
+        echo "**API Title:** $api_title" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** $api_version" >> $GITHUB_STEP_SUMMARY
+        echo "**Endpoints:** $endpoint_count" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Documentation:** [Swagger UI](http://localhost:8000/docs) | [ReDoc](http://localhost:8000/redoc)" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Upload documentation artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: api-documentation
+        path: |
+          ${{ env.BACKEND_DIR }}/docs/openapi.json
+          ${{ env.BACKEND_DIR }}/docs/openapi-pretty.json
+        retention-days: 30
+
+
