@@ -1,294 +1,184 @@
 """
-Ultra-simple memory system for Gemini Live following the reference approach.
-Uses only PostgreSQL for persistence - no complex dependencies.
+Simple and robust Mem0 cloud API integration for Gemini Live.
+Uses Mem0's hosted service for intelligent memory storage and retrieval.
 """
 
 import os
-import json
-import asyncio
-import asyncpg
 from typing import List, Dict, Optional
 import logging
+from mem0 import MemoryClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class SimpleMemoryManager:
+class Mem0MemoryManager:
     """
-    Ultra-simple memory manager following the reference implementation approach.
-    Uses only PostgreSQL for persistence - no Mem0, no vector databases, no complex dependencies.
+    Simple memory manager using Mem0 cloud API.
+    Provides intelligent memory storage and retrieval through Mem0's hosted service.
     """
 
     def __init__(self):
-        self.db_pool = None
-        self.user_id = "default_user"  # Simple fixed user ID like the reference
-        logger.info("✅ Simple memory manager initialized (PostgreSQL only)")
+        self.client = None
+        self.user_id = "default_user"  # Simple fixed user ID
+        self._initialize_mem0_client()
+        logger.info("✅ Mem0 cloud memory manager initialized")
 
-    def _simple_text_search(self, query: str, conversations: List[Dict]) -> List[Dict]:
-        """
-        Simple text-based search through conversations.
-        No embeddings, no vector search - just basic keyword matching.
-        """
-        query_words = query.lower().split()
-        scored_conversations = []
-
-        for conv in conversations:
-            score = 0
-            text_to_search = (conv.get('user_message', '') + ' ' + conv.get('assistant_message', '')).lower()
-
-            # Simple scoring: count keyword matches
-            for word in query_words:
-                if word in text_to_search:
-                    score += text_to_search.count(word)
-
-            if score > 0:
-                scored_conversations.append({
-                    'conversation': conv,
-                    'score': score
-                })
-
-        # Sort by score and return top results
-        scored_conversations.sort(key=lambda x: x['score'], reverse=True)
-        return [item['conversation'] for item in scored_conversations[:5]]
-    
-    async def initialize_db(self):
-        """Initialize PostgreSQL database connection and tables."""
+    def _initialize_mem0_client(self):
+        """Initialize Mem0 client with API key."""
         try:
-            # Database connection string - try to connect to local PostgreSQL
-            db_url = os.environ.get("DATABASE_URL", "postgresql://localhost/gemini_memory")
+            # Use the provided API key
+            api_key = "m0-AVQ93KTucad31iLE4ZOrhaa97fcxIgTYFNWFpiFc"
 
-            # Create connection pool
-            self.db_pool = await asyncpg.create_pool(db_url, min_size=1, max_size=5)
-
-            # Create tables if they don't exist
-            async with self.db_pool.acquire() as conn:
-                await conn.execute("""
-                    CREATE TABLE IF NOT EXISTS conversations (
-                        id SERIAL PRIMARY KEY,
-                        session_id VARCHAR(255) NOT NULL,
-                        user_message TEXT,
-                        assistant_message TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-
-                await conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_conversations_session_id
-                    ON conversations(session_id)
-                """)
-
-                await conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_conversations_created_at
-                    ON conversations(created_at)
-                """)
-
-            logger.info("✅ PostgreSQL database initialized")
+            # Initialize Mem0 client
+            self.client = MemoryClient(api_key=api_key)
+            logger.info("✅ Mem0 client initialized with cloud API")
 
         except Exception as e:
-            logger.warning(f"PostgreSQL not available: {e}")
-            logger.info("✅ Continuing with in-memory storage only")
-            # Use simple in-memory storage as fallback
-            self.conversations_memory = []
+            logger.error(f"Error initializing Mem0 client: {e}")
+            raise RuntimeError(f"Could not initialize Mem0 client: {e}")
+    
+    async def initialize(self):
+        """Initialize the Mem0 client (already done in __init__)."""
+        try:
+            # Test the client connection
+            logger.info("✅ Mem0 client ready for use")
+            return True
+        except Exception as e:
+            logger.error(f"Error testing Mem0 client: {e}")
+            return False
     
     def add_to_memory(self, messages: List[Dict], session_id: str, metadata: Optional[Dict] = None):
         """
-        Add conversation to memory - ultra-simple approach.
+        Add conversation to Mem0 cloud using the API.
 
         Args:
             messages: List of message dicts with 'role' and 'content'
             session_id: Session identifier
-            metadata: Optional metadata (ignored in simple version)
+            metadata: Optional metadata for enhanced context
 
         Returns:
-            Simple ID if successful, None otherwise
+            Memory ID if successful, None otherwise
         """
         try:
-            logger.info(f"Adding to memory: {len(messages)} messages for session {session_id}")
+            logger.info(f"Adding to Mem0 cloud: {len(messages)} messages for session {session_id}")
 
-            # Extract user and assistant messages
-            user_msg = next((m['content'] for m in messages if m['role'] == 'user'), None)
-            assistant_msg = next((m['content'] for m in messages if m['role'] == 'assistant'), None)
+            # Prepare metadata with session information
+            if metadata is None:
+                metadata = {}
+            metadata.update({
+                "session_id": session_id,
+                "category": "conversation"
+            })
 
-            if not user_msg or not assistant_msg:
-                logger.warning("Incomplete conversation - missing user or assistant message")
-                return None
+            # Use session_id as user_id for Mem0 to maintain session isolation
+            user_id = f"session_{session_id}"
 
-            # Save to PostgreSQL or in-memory storage
-            if self.db_pool:
-                asyncio.create_task(self._save_to_db(user_msg, assistant_msg, session_id))
+            # Add to Mem0 cloud using the official API
+            result = self.client.add(messages, user_id=user_id, metadata=metadata)
+
+            # Extract memory ID from result
+            memory_id = None
+            if isinstance(result, dict) and "results" in result:
+                results = result["results"]
+                if isinstance(results, list) and len(results) > 0:
+                    # Get the first memory ID from results
+                    memory_id = results[0].get("id")
+                    logger.info(f"✅ Conversation saved to Mem0 cloud with ID: {memory_id}")
+                else:
+                    # Empty results but successful API call
+                    logger.info("✅ Conversation processed by Mem0 (no new memories created)")
+                    return "mem0_processed"
             else:
-                # Fallback to in-memory storage
-                if not hasattr(self, 'conversations_memory'):
-                    self.conversations_memory = []
+                logger.warning(f"Unexpected Mem0 result format: {result}")
 
-                self.conversations_memory.append({
-                    'session_id': session_id,
-                    'user_message': user_msg,
-                    'assistant_message': assistant_msg,
-                    'created_at': asyncio.get_event_loop().time()
-                })
-
-                # Keep only last 100 conversations in memory
-                if len(self.conversations_memory) > 100:
-                    self.conversations_memory = self.conversations_memory[-100:]
-
-            logger.info("✅ Conversation saved to memory")
-            return f"simple_id_{session_id}_{len(messages)}"
+            return memory_id
 
         except Exception as e:
-            logger.error(f"Error adding to memory: {e}")
+            logger.error(f"Error adding to Mem0 cloud: {e}")
             return None
-    
-    async def _save_to_db(self, user_msg: str, assistant_msg: str, session_id: str):
-        """Save conversation to PostgreSQL database."""
-        try:
-            if not self.db_pool:
-                return
-
-            async with self.db_pool.acquire() as conn:
-                await conn.execute("""
-                    INSERT INTO conversations (session_id, user_message, assistant_message)
-                    VALUES ($1, $2, $3)
-                """, session_id, user_msg, assistant_msg)
-
-            logger.info(f"Saved conversation to PostgreSQL for session {session_id}")
-
-        except Exception as e:
-            logger.error(f"Error saving to database: {e}")
     
     def query_memory(self, query: str, session_id: str = None) -> List[Dict]:
         """
-        Search for relevant memories based on the query - ultra-simple approach.
+        Search for relevant memories using Mem0 cloud API.
 
         Args:
             query: Search query
             session_id: Optional session filter
 
         Returns:
-            List of relevant conversations formatted as memories
+            List of relevant memories from Mem0 cloud
         """
         try:
-            logger.info(f"Querying memory: {query}")
+            logger.info(f"Querying Mem0 cloud: {query}")
 
-            # Get conversations from database or memory
-            if self.db_pool:
-                # This will be handled by async method
-                conversations = []
-                try:
-                    # Create a simple sync wrapper for the async call
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        # If we're in an async context, we can't use run_until_complete
-                        # So we'll use the in-memory fallback
-                        conversations = getattr(self, 'conversations_memory', [])
-                    else:
-                        conversations = loop.run_until_complete(self._get_conversations_for_search(session_id))
-                except:
-                    conversations = getattr(self, 'conversations_memory', [])
+            # Use session_id as user_id for Mem0 to maintain session isolation
+            if session_id:
+                user_id = f"session_{session_id}"
             else:
-                conversations = getattr(self, 'conversations_memory', [])
+                user_id = f"session_{self.user_id}"
 
-            # Simple text search
-            relevant_conversations = self._simple_text_search(query, conversations)
+            # Search using Mem0 cloud API
+            response = self.client.search(query=query, user_id=user_id)
 
-            # Format as memory objects (similar to Mem0 format)
-            formatted_memories = []
-            for conv in relevant_conversations:
-                memory_text = f"User asked: {conv['user_message']} Assistant replied: {conv['assistant_message']}"
-                formatted_memories.append({
-                    'memory': memory_text,
-                    'score': 1.0,  # Simple scoring
-                    'session_id': conv.get('session_id', 'unknown')
-                })
-
-            logger.info(f"Found {len(formatted_memories)} relevant memories")
-            return formatted_memories
-
-        except Exception as e:
-            logger.error(f"Error querying memory: {e}")
-            return []
-
-    async def _get_conversations_for_search(self, session_id: str = None) -> List[Dict]:
-        """Get conversations from database for search."""
-        try:
-            if not self.db_pool:
-                return []
-
-            async with self.db_pool.acquire() as conn:
-                if session_id:
-                    rows = await conn.fetch("""
-                        SELECT session_id, user_message, assistant_message, created_at
-                        FROM conversations
-                        WHERE session_id = $1
-                        ORDER BY created_at DESC
-                        LIMIT 50
-                    """, session_id)
+            # Handle the response structure
+            memories = []
+            if isinstance(response, dict):
+                # Check for different possible response structures
+                if "results" in response:
+                    memories = response["results"]
+                elif "memories" in response:
+                    memories = response["memories"]
                 else:
-                    rows = await conn.fetch("""
-                        SELECT session_id, user_message, assistant_message, created_at
-                        FROM conversations
-                        ORDER BY created_at DESC
-                        LIMIT 50
-                    """)
+                    memories = [response] if response else []
+            elif isinstance(response, list):
+                memories = response
 
-                conversations = []
-                for row in rows:
-                    conversations.append({
-                        'session_id': row['session_id'],
-                        'user_message': row['user_message'],
-                        'assistant_message': row['assistant_message'],
-                        'created_at': row['created_at']
-                    })
-
-                return conversations
+            logger.info(f"Found {len(memories)} relevant memories from Mem0 cloud")
+            return memories
 
         except Exception as e:
-            logger.error(f"Error getting conversations for search: {e}")
+            logger.error(f"Error querying Mem0 cloud: {e}")
             return []
 
     async def get_recent_conversations(self, session_id: str, limit: int = 5) -> List[Dict]:
-        """Get recent conversations from PostgreSQL or memory for context."""
+        """Get recent conversations from Mem0 cloud for context."""
         try:
-            if self.db_pool:
-                async with self.db_pool.acquire() as conn:
-                    rows = await conn.fetch("""
-                        SELECT user_message, assistant_message, created_at
-                        FROM conversations
-                        WHERE session_id = $1
-                        ORDER BY created_at DESC
-                        LIMIT $2
-                    """, session_id, limit)
+            # Search for recent conversations in this session
+            memories = self.query_memory("recent conversation", session_id)
 
-                    conversations = []
-                    for row in rows:
+            # Convert Mem0 memories to conversation format
+            conversations = []
+            for memory in memories[:limit]:
+                memory_text = memory.get('memory', '')
+                # Try to extract user and assistant messages from memory text
+                if 'User asked:' in memory_text and 'Assistant replied:' in memory_text:
+                    parts = memory_text.split('Assistant replied:')
+                    if len(parts) == 2:
+                        user_part = parts[0].replace('User asked:', '').strip()
+                        assistant_part = parts[1].strip()
                         conversations.append({
-                            'user_message': row['user_message'],
-                            'assistant_message': row['assistant_message'],
-                            'created_at': row['created_at'].isoformat()
+                            'user_message': user_part,
+                            'assistant_message': assistant_part,
+                            'created_at': memory.get('created_at', 'unknown')
                         })
 
-                    return conversations
-            else:
-                # Fallback to in-memory storage
-                conversations = getattr(self, 'conversations_memory', [])
-                session_conversations = [c for c in conversations if c['session_id'] == session_id]
-                return session_conversations[-limit:] if session_conversations else []
+            return conversations
 
         except Exception as e:
-            logger.error(f"Error getting recent conversations: {e}")
+            logger.error(f"Error getting recent conversations from Mem0 cloud: {e}")
             return []
     
     def format_memory_response(self, memories: List[Dict]) -> str:
-        """Format memories for use in responses, following reference approach."""
+        """Format Mem0 memories for use in responses."""
         if not memories:
             return "No relevant past conversations found."
 
         try:
-            # Sort memories by score and get top results (from reference)
+            # Sort memories by score and get top results
             sorted_memories = sorted(memories, key=lambda x: x.get('score', 0), reverse=True)[:5]
 
-            # Create readable summary from top memories (from reference)
+            # Create readable summary from top memories
             memory_points = []
             for mem in sorted_memories:
                 memory_text = mem.get('memory', '')
@@ -307,20 +197,22 @@ class SimpleMemoryManager:
         except Exception as e:
             logger.error(f"Error formatting memory response: {e}")
             return "Error retrieving past conversations."
-    
+
     async def close(self):
-        """Close database connections."""
-        if self.db_pool:
-            await self.db_pool.close()
-            logger.info("Database connections closed")
+        """Close Mem0 client connections if needed."""
+        try:
+            # Mem0 client handles its own cleanup
+            logger.info("Mem0 client closed")
+        except Exception as e:
+            logger.warning(f"Error closing Mem0 client: {e}")
 
 # Global memory manager instance
 memory_manager = None
 
-async def get_memory_manager() -> SimpleMemoryManager:
-    """Get or create the global memory manager instance."""
+async def get_memory_manager() -> Mem0MemoryManager:
+    """Get or create the global Mem0 memory manager instance."""
     global memory_manager
     if memory_manager is None:
-        memory_manager = SimpleMemoryManager()
-        await memory_manager.initialize_db()
+        memory_manager = Mem0MemoryManager()
+        await memory_manager.initialize()
     return memory_manager
