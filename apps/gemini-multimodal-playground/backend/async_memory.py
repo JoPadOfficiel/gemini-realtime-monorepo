@@ -193,6 +193,12 @@ class AsyncMemoryQueue:
         await asyncio.sleep(0.1)
 
         try:
+            # DEBUG: Log the payload being sent to Mem0
+            logger.info(f"🔍 DEBUG - Mem0 payload:")
+            logger.info(f"   Session ID: {session_id}")
+            logger.info(f"   Messages count: {len(messages)}")
+            logger.info(f"   Messages preview: {json.dumps(messages[:1], indent=2, ensure_ascii=False) if messages else 'No messages'}")
+
             # Use thread pool for blocking Mem0 call with correct parameters
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
@@ -202,13 +208,27 @@ class AsyncMemoryQueue:
                     user_id=session_id
                 )
             )
-            # Handle both dict and string responses
+
+            # DEBUG: Log the response from Mem0
+            logger.info(f"🔍 DEBUG - Mem0 response: {json.dumps(result, indent=2, ensure_ascii=False) if isinstance(result, dict) else str(result)}")
+
+            # Handle the response correctly - Mem0 returns a dict with 'results' array
             if isinstance(result, dict):
-                return result.get("id", "unknown")
+                if 'results' in result and result['results']:
+                    # Extract memory IDs from results
+                    memory_ids = [item.get('id', 'unknown') for item in result['results']]
+                    logger.info(f"📝 Mem0 memories created with IDs: {memory_ids}")
+                    return f"batch_{len(memory_ids)}_memories"
+                else:
+                    logger.warning(f"⚠️ Unexpected Mem0 response format: {result}")
+                    return "unknown_format"
             else:
+                logger.info(f"📝 Mem0 response (string): {str(result)}")
                 return str(result)
         except Exception as e:
             logger.error(f"❌ Mem0 save failed: {str(e)}")
+            logger.error(f"   Session ID: {session_id}")
+            logger.error(f"   Messages: {messages}")
             raise
     
     async def _query_mem0(self, session_id: str, query: str) -> List[Dict]:
