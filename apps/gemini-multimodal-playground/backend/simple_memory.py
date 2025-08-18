@@ -25,10 +25,12 @@ class Mem0MemoryManager:
         logger.info("✅ Mem0 cloud memory manager initialized")
 
     def _initialize_mem0_client(self):
-        """Initialize Mem0 client with API key."""
+        """Initialize Mem0 client with API key from environment."""
         try:
-            # Use the provided API key
-            api_key = "m0-AVQ93KTucad31iLE4ZOrhaa97fcxIgTYFNWFpiFc"
+            # Get API key from environment variable
+            api_key = os.environ.get("MEM0_API_KEY")
+            if not api_key:
+                raise ValueError("MEM0_API_KEY environment variable is required")
 
             # Initialize Mem0 client
             self.client = MemoryClient(api_key=api_key)
@@ -71,8 +73,9 @@ class Mem0MemoryManager:
                 "category": "conversation"
             })
 
-            # Use session_id as user_id for Mem0 to maintain session isolation
-            user_id = f"session_{session_id}"
+            # Use a consistent user_id based on browser/client
+            # This allows memory persistence across sessions while maintaining some isolation
+            user_id = "browser_user"  # Could be enhanced with actual user identification
 
             # Add to Mem0 cloud using the official API
             result = self.client.add(messages, user_id=user_id, metadata=metadata)
@@ -112,11 +115,9 @@ class Mem0MemoryManager:
         try:
             logger.info(f"Querying Mem0 cloud: {query}")
 
-            # Use session_id as user_id for Mem0 to maintain session isolation
-            if session_id:
-                user_id = f"session_{session_id}"
-            else:
-                user_id = f"session_{self.user_id}"
+            # Use a consistent user_id so memories persist across sessions
+            # This allows the AI to remember conversations from previous sessions
+            user_id = "browser_user"
 
             # Search using Mem0 cloud API
             response = self.client.search(query=query, user_id=user_id)
