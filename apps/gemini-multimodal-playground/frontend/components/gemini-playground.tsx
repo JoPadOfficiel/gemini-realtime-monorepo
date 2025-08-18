@@ -115,13 +115,27 @@ export default function GeminiVoiceChat() {
   let audioBuffer: Float32Array[] = []
   let isPlaying = false
 
+  // Function to get model info from existing models array
+  const getModelInfo = useCallback((modelId: string) => {
+    return models.find(model => model.id === modelId) || {
+      id: modelId,
+      name: modelId,
+      type: "unknown",
+      recommended: false,
+      limits: "N/A"
+    };
+  }, [models]);
+
   // Token polling functions for hybrid architecture
   const startTokenPolling = useCallback(() => {
     const interval = setInterval(async () => {
       try {
         const tokenData = await apiService.getTokenUsage(clientId.current);
         setTokenCount(tokenData.total_tokens);
-        setModelLimits(tokenData.limits);
+        // Update model limits from API if available, otherwise keep current
+        if (tokenData.limits) {
+          setModelLimits(tokenData.limits);
+        }
       } catch (error) {
         console.error('Token polling failed:', error);
       }
@@ -136,6 +150,12 @@ export default function GeminiVoiceChat() {
       setTokenPollingInterval(null);
     }
   }, [tokenPollingInterval]);
+
+  // Initialize model limits on component mount
+  useEffect(() => {
+    const modelInfo = getModelInfo(config.model);
+    setModelLimits(modelInfo);
+  }, [config.model]);
 
   const startStream = async (mode: 'audio' | 'camera' | 'screen') => {
 
