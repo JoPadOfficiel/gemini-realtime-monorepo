@@ -586,7 +586,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                                 try:
                                                     # Initialize async queue if needed
                                                     if not async_memory_queue.mem0_client:
-                                                        await async_memory_queue.initialize(gemini.memory_manager.mem0_client)
+                                                        await async_memory_queue.initialize(gemini.memory_manager)
 
                                                     # Queue memory save (returns immediately, no UI blocking)
                                                     task_id = await async_memory_queue.queue_memory_save(
@@ -596,6 +596,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                                     print(f"✅ Complete conversation queued for memory save (task: {task_id[:8]}...)")
                                                 except Exception as e:
                                                     print(f"Error queuing async complete conversation save: {e}")
+                                                    # Fallback to synchronous save if async fails
+                                                    try:
+                                                        memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
+                                                        print(f"✅ Fallback: Complete conversation saved synchronously with ID: {memory_id}")
+                                                    except Exception as fallback_error:
+                                                        print(f"❌ Both async and sync memory save failed: {fallback_error}")
 
                                             # Fire and forget - completely non-blocking
                                             asyncio.create_task(save_complete_conversation())
@@ -755,7 +761,7 @@ async def save_memory_async(memory_data: MemoryAdd):
         # Initialize async queue if needed
         if not async_memory_queue.mem0_client:
             memory_manager = await get_memory_manager()
-            await async_memory_queue.initialize(memory_manager.mem0_client)
+            await async_memory_queue.initialize(memory_manager)
 
         # Queue the save operation (non-blocking)
         task_id = await async_memory_queue.queue_memory_save(
@@ -782,7 +788,7 @@ async def query_memory_async(query_data: MemoryQuery):
         # Initialize async queue if needed
         if not async_memory_queue.mem0_client:
             memory_manager = await get_memory_manager()
-            await async_memory_queue.initialize(memory_manager.mem0_client)
+            await async_memory_queue.initialize(memory_manager)
 
         # Queue the query operation (non-blocking)
         task_id = await async_memory_queue.queue_memory_query(

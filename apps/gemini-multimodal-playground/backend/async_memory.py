@@ -51,9 +51,13 @@ class AsyncMemoryQueue:
         self.worker_running = False
         self.mem0_client = None
         
-    async def initialize(self, mem0_client):
-        """Initialize the async memory queue with Mem0 client"""
-        self.mem0_client = mem0_client
+    async def initialize(self, memory_manager):
+        """Initialize the async memory queue with Mem0 memory manager"""
+        # Extract the actual Mem0 client from the memory manager
+        self.mem0_client = getattr(memory_manager, 'client', None)
+        if not self.mem0_client:
+            raise ValueError("Memory manager does not have a valid Mem0 client")
+
         if not self.worker_running:
             asyncio.create_task(self._worker())
             self.worker_running = True
@@ -184,20 +188,25 @@ class AsyncMemoryQueue:
         """Save messages to Mem0 (async wrapper)"""
         if not self.mem0_client:
             raise Exception("Mem0 client not initialized")
-        
-        # Simulate async operation (replace with actual Mem0 async call)
-        await asyncio.sleep(0.1)  # Prevent blocking
-        
+
+        # Simulate async operation (prevent blocking)
+        await asyncio.sleep(0.1)
+
         try:
-            # Use thread pool for blocking Mem0 call
+            # Use thread pool for blocking Mem0 call with correct parameters
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
-                None, 
-                self.mem0_client.add,
-                messages,
-                {"session_id": session_id}
+                None,
+                lambda: self.mem0_client.add(
+                    messages=messages,
+                    user_id=session_id
+                )
             )
-            return result.get("id", "unknown")
+            # Handle both dict and string responses
+            if isinstance(result, dict):
+                return result.get("id", "unknown")
+            else:
+                return str(result)
         except Exception as e:
             logger.error(f"❌ Mem0 save failed: {str(e)}")
             raise
@@ -206,17 +215,18 @@ class AsyncMemoryQueue:
         """Query Mem0 for memories (async wrapper)"""
         if not self.mem0_client:
             raise Exception("Mem0 client not initialized")
-        
+
         await asyncio.sleep(0.1)  # Prevent blocking
-        
+
         try:
-            # Use thread pool for blocking Mem0 call
+            # Use thread pool for blocking Mem0 call with correct parameters
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
-                self.mem0_client.search,
-                query,
-                {"session_id": session_id}
+                lambda: self.mem0_client.search(
+                    query=query,
+                    user_id=session_id
+                )
             )
             return result or []
         except Exception as e:
