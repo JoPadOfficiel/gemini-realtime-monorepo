@@ -12,6 +12,7 @@ import time
 from dotenv import load_dotenv
 from websockets import connect
 from typing import Dict
+from simple_memory import get_memory_manager
 
 load_dotenv()
 
@@ -99,6 +100,26 @@ async def transcribe_pcm_data(pcm_base64: str) -> str:
         print(f"Transcription error: {e}")
         return ""
 
+# Define the memory query tool (following reference implementation)
+MEMORY_QUERY_TOOL = {
+    "function_declarations": [
+        {
+            "name": "query_memory",
+            "description": "Query the memory database to retrieve relevant past interactions with the user.",
+            "parameters": {
+                "type": "OBJECT",
+                "properties": {
+                    "query": {
+                        "type": "STRING",
+                        "description": "The query string to search the memory."
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    ]
+}
+
 class GeminiConnection:
     def __init__(self, model="gemini-live-2.5-flash-preview", session_id=None):
         self.api_key = os.environ.get("GEMINI_API_KEY")
@@ -118,6 +139,8 @@ class GeminiConnection:
         self.accumulated_output_transcription = []  # Fragments de transcription Gemini
         self.token_count = 0
         self.session_start_time = None
+        # Memory manager will be initialized when needed
+        self.memory_manager = None
 
     def get_model_limits(self):
         """Get rate limits for the current model"""
@@ -162,9 +185,13 @@ class GeminiConnection:
     async def connect(self):
         """Initialize connection to Gemini"""
         self.ws = await connect(self.uri, additional_headers={"Content-Type": "application/json"})
-        
+
         if not self.config:
             raise ValueError("Configuration must be set before connecting")
+
+        # Initialize memory manager
+        if self.memory_manager is None:
+            self.memory_manager = await get_memory_manager()
 
         # Send initial setup message with configuration
         setup_message = {
@@ -183,10 +210,11 @@ class GeminiConnection:
                 "system_instruction": {
                     "parts": [
                         {
-                            "text": self.config.get("systemPrompt", "You are a helpful assistant.")
+                            "text": self.config.get("systemPrompt", "You are a helpful assistant with long-term memory. Before answering any questions, you should use the query_memory tool to check if we have discussed similar topics before. Use relevant past context to provide better, more personalized responses.")
                         }
                     ]
-                }
+                },
+                "tools": [MEMORY_QUERY_TOOL]
             }
         }
 
@@ -407,6 +435,57 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                 }
                             }))
 
+                    # Handle function calls (memory queries) - following reference implementation
+                    if "toolCall" in response:
+                        tool_call = response["toolCall"]
+                        function_calls = tool_call.get("functionCalls", [])
+
+                        for function_call in function_calls:
+                            function_name = function_call.get("name")
+                            function_args = function_call.get("args", {})
+                            call_id = function_call.get("id")
+
+                            if function_name == "query_memory":
+                                try:
+                                    query = function_args.get("query", "")
+                                    print(f"Memory query: {query}")
+
+                                    # Query memory using the simple memory manager
+                                    memories = gemini.memory_manager.query_memory(query, gemini.session_id)
+                                    memory_response = gemini.memory_manager.format_memory_response(memories)
+
+                                    # Send function response back to Gemini (following reference format)
+                                    function_response = {
+                                        "toolResponse": {
+                                            "functionResponses": [
+                                                {
+                                                    "id": call_id,
+                                                    "name": function_name,
+                                                    "response": {"result": memory_response}
+                                                }
+                                            ]
+                                        }
+                                    }
+
+                                    print(f"Sending memory response: {memory_response[:200]}...")
+                                    await gemini.ws.send(json.dumps(function_response))
+
+                                except Exception as e:
+                                    print(f"Error handling memory query: {e}")
+                                    # Send error response
+                                    error_response = {
+                                        "toolResponse": {
+                                            "functionResponses": [
+                                                {
+                                                    "id": call_id,
+                                                    "name": function_name,
+                                                    "response": {"result": "Error retrieving memories"}
+                                                }
+                                            ]
+                                        }
+                                    }
+                                    await gemini.ws.send(json.dumps(error_response))
+
                     # Forward audio data to client and accumulate PCM data
                     try:
                         parts = response["serverContent"]["modelTurn"]["parts"]
@@ -461,6 +540,52 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             if "interrupted" in response["serverContent"]:
                                 if response["serverContent"]["interrupted"]:
                                     print(f"[{time.time()}] Generation interrupted by user activity")
+
+                                    # Save conversation to memory on interruption (this is when conversations actually end)
+                                    try:
+                                        print("💾 INTERRUPTION - Attempting to save conversation to memory")
+                                        user_text = None
+                                        assistant_text = None
+
+                                        # Get user message from accumulated input transcription
+                                        if gemini.accumulated_input_transcription:
+                                            user_text = "".join(gemini.accumulated_input_transcription).strip()
+                                            print(f"📝 User text from interruption: '{user_text[:50]}...'")
+
+                                        # Get assistant message from accumulated output transcription
+                                        if gemini.accumulated_output_transcription:
+                                            assistant_text = "".join(gemini.accumulated_output_transcription).strip()
+                                            print(f"📝 Assistant text from interruption: '{assistant_text[:50]}...'")
+
+                                        # Add to memory if we have both parts
+                                        if user_text and assistant_text and gemini.memory_manager:
+                                            # Skip very short or invalid messages
+                                            if (len(user_text) > 3 and len(assistant_text) > 3 and
+                                                user_text not in [".", " .", "  ."] and
+                                                assistant_text not in [".", " .", "  ."]):
+
+                                                messages = [
+                                                    {"role": "user", "content": user_text},
+                                                    {"role": "assistant", "content": assistant_text}
+                                                ]
+
+                                                print(f"💾 Saving interrupted conversation - User: {user_text[:30]}... Assistant: {assistant_text[:30]}...")
+                                                memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
+
+                                                if memory_id:
+                                                    print(f"✅ Interrupted conversation saved to memory with ID: {memory_id}")
+                                                else:
+                                                    print("⚠️ Failed to save interrupted conversation to memory")
+                                            else:
+                                                print(f"Skipping interrupted memory save - messages too short (user: {len(user_text) if user_text else 0}, assistant: {len(assistant_text) if assistant_text else 0})")
+                                        else:
+                                            print(f"Skipping interrupted memory save - missing data (user: {'✓' if user_text else '✗'}, assistant: {'✓' if assistant_text else '✗'}, manager: {'✓' if gemini.memory_manager else '✗'})")
+
+                                    except Exception as e:
+                                        print(f"Error saving interrupted conversation to memory: {e}")
+                                        import traceback
+                                        traceback.print_exc()
+
                                     interrupt_message = {
                                         "type": "interruption",
                                         "interrupted": True
@@ -493,7 +618,51 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     # Handle turn completion - send accumulated transcriptions like GitHub
                     try:
                         if response["serverContent"]["turnComplete"]:
-                            # Send accumulated INPUT transcription (user message) - API officielle + GitHub system
+                            print("🔄 TURN COMPLETE detected - processing memory save")
+                            # FIRST: Save conversation to memory BEFORE clearing transcriptions
+                            try:
+                                # Get transcriptions from accumulated data BEFORE they are cleared
+                                user_text = None
+                                assistant_text = None
+
+                                # Get user message from accumulated input transcription
+                                if gemini.accumulated_input_transcription:
+                                    user_text = "".join(gemini.accumulated_input_transcription).strip()
+
+                                # Get assistant message from accumulated output transcription
+                                if gemini.accumulated_output_transcription:
+                                    assistant_text = "".join(gemini.accumulated_output_transcription).strip()
+
+                                # Add to memory if we have both parts (following reference approach)
+                                if user_text and assistant_text and gemini.memory_manager:
+                                    # Skip very short or invalid messages
+                                    if (len(user_text) > 3 and len(assistant_text) > 3 and
+                                        user_text not in [".", " .", "  ."] and
+                                        assistant_text not in [".", " .", "  ."]):
+
+                                        messages = [
+                                            {"role": "user", "content": user_text},
+                                            {"role": "assistant", "content": assistant_text}
+                                        ]
+
+                                        print(f"💾 Saving conversation - User: {user_text[:50]}... Assistant: {assistant_text[:50]}...")
+                                        memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
+
+                                        if memory_id:
+                                            print(f"✅ Conversation saved to memory with ID: {memory_id}")
+                                        else:
+                                            print("⚠️ Failed to save conversation to memory")
+                                    else:
+                                        print(f"Skipping memory save - messages too short or invalid (user: {len(user_text) if user_text else 0}, assistant: {len(assistant_text) if assistant_text else 0})")
+                                else:
+                                    print(f"Skipping memory save - missing data (user: {'✓' if user_text else '✗'}, assistant: {'✓' if assistant_text else '✗'}, manager: {'✓' if gemini.memory_manager else '✗'})")
+
+                            except Exception as e:
+                                print(f"Error saving conversation to memory: {e}")
+                                import traceback
+                                traceback.print_exc()
+
+                            # SECOND: Send accumulated INPUT transcription (user message) - API officielle + GitHub system
                             # Only if not already sent during interruption
                             if gemini.accumulated_input_transcription:
                                 complete_input_transcription = "".join(gemini.accumulated_input_transcription)
@@ -508,7 +677,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                     print(f"Skipping interruption artifact: '{complete_input_transcription}'")
                                 gemini.accumulated_input_transcription = []
 
-                            # Send accumulated OUTPUT transcription (assistant message) - API officielle + GitHub system
+                            # THIRD: Send accumulated OUTPUT transcription (assistant message) - API officielle + GitHub system
                             if gemini.accumulated_output_transcription:
                                 complete_output_transcription = "".join(gemini.accumulated_output_transcription)
                                 print(f"Complete output transcription: {complete_output_transcription}")
@@ -526,6 +695,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             if gemini.accumulated_pcm_data:
                                 print(f"Clearing assistant PCM data: {len(gemini.accumulated_pcm_data)} fragments")
                                 gemini.accumulated_pcm_data = []
+
+
 
                             await websocket.send_json({
                                 "type": "turn_complete",
