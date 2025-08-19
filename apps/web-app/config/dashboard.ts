@@ -7,7 +7,7 @@ export const sidebarLinks: SidebarNavItem[] = [
     title: "MENU",
     items: [
       {
-        href: "/admin",
+        href: "/dashboard/admin",
         icon: "laptop",
         title: "Admin Panel",
         authorizeOnly: UserRole.ADMIN,
@@ -22,7 +22,7 @@ export const sidebarLinks: SidebarNavItem[] = [
       { href: "/dashboard/charts", icon: "lineChart", title: "Charts" },
       { href: "/dashboard/gemini-playground", icon: "bot", title: "Gemini AI Playground" },
       {
-        href: "/admin/orders",
+        href: "/dashboard/admin/orders",
         icon: "package",
         title: "Orders",
         badge: 2,
