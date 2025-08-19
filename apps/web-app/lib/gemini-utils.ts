@@ -1,8 +1,4 @@
-export function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(" ");
-}
-
-export const float32ToPcm16 = (float32Array: string | any[]) => {
+export const float32ToPcm16 = (float32Array: Float32Array): Int16Array => {
   const pcm16 = new Int16Array(float32Array.length);
   for (let i = 0; i < float32Array.length; i++) {
     const s = Math.max(-1, Math.min(1, float32Array[i]));
@@ -12,7 +8,7 @@ export const float32ToPcm16 = (float32Array: string | any[]) => {
 };
 
 // Utility function to convert base64 to Float32Array
-export const base64ToFloat32Array = (base64: string) => {
+export const base64ToFloat32Array = (base64: string): Float32Array => {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -29,7 +25,7 @@ export const base64ToFloat32Array = (base64: string) => {
 };
 
 // API Service Layer for Gemini Live Backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000';
 
 export class GeminiApiService {
   private static instance: GeminiApiService;
@@ -42,7 +38,7 @@ export class GeminiApiService {
   }
 
   // Token Management
-  async getTokenUsage(sessionId: string) {
+  async getTokenUsage(sessionId: string): Promise<any> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/tokens/usage/${sessionId}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -54,7 +50,7 @@ export class GeminiApiService {
   }
 
   // Session Management
-  async getSessionInfo(sessionId: string) {
+  async getSessionInfo(sessionId: string): Promise<any> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -65,7 +61,7 @@ export class GeminiApiService {
     }
   }
 
-  async listActiveSessions() {
+  async listActiveSessions(): Promise<any> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/sessions`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -77,7 +73,7 @@ export class GeminiApiService {
   }
 
   // Memory Management
-  async queryMemory(query: string, sessionId: string = 'default_session') {
+  async queryMemory(query: string, sessionId: string = 'default_session'): Promise<any> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/memory/query`, {
         method: 'POST',
@@ -92,7 +88,7 @@ export class GeminiApiService {
     }
   }
 
-  async addMemory(messages: any[], sessionId: string = 'default_session', metadata?: any) {
+  async addMemory(messages: any[], sessionId: string = 'default_session', metadata?: any): Promise<any> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/memory/add`, {
         method: 'POST',

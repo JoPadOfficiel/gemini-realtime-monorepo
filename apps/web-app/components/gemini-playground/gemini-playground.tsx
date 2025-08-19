@@ -11,6 +11,54 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { base64ToFloat32Array, float32ToPcm16, GeminiApiService } from '@/lib/gemini-utils';
 
+// Constants
+const BACKEND_URL = process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000';
+
+const MODELS = [
+  {
+    id: "gemini-live-2.5-flash-preview",
+    name: "Gemini Live 2.5 Flash (Recommended)",
+    type: "half_cascade",
+    recommended: true,
+    limits: "3 sessions, 1M TPM (Free)"
+  },
+  {
+    id: "gemini-2.5-flash-preview-native-audio-dialog",
+    name: "Gemini 2.5 Flash Native Audio Dialog",
+    type: "native_audio",
+    recommended: false,
+    limits: "⚠️ 1 session, 25K TPM (Free)",
+    warning: "Very restrictive limits"
+  },
+  {
+    id: "gemini-2.5-flash-exp-native-audio-thinking-dialog",
+    name: "Gemini 2.5 Flash Native Audio Thinking",
+    type: "native_audio",
+    recommended: false,
+    limits: "⚠️ 1 session, 10K TPM (Free)",
+    warning: "Extremely restrictive limits"
+  }
+];
+
+const VOICES = ["Puck", "Charon", "Kore", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr"];
+
+const LANGUAGES = [
+  { code: "auto", name: "Auto-detect" },
+  { code: "en-US", name: "English (US)" },
+  { code: "en-GB", name: "English (UK)" },
+  { code: "fr-FR", name: "French" },
+  { code: "es-ES", name: "Spanish" },
+  { code: "de-DE", name: "German" },
+  { code: "it-IT", name: "Italian" },
+  { code: "pt-BR", name: "Portuguese (Brazil)" },
+  { code: "ja-JP", name: "Japanese" },
+  { code: "ko-KR", name: "Korean" },
+  { code: "cmn-CN", name: "Chinese (Mandarin)" },
+  { code: "hi-IN", name: "Hindi" },
+  { code: "ar-XA", name: "Arabic" },
+  { code: "ru-RU", name: "Russian" }
+];
+
 interface Config {
   systemPrompt: string;
   voice: string;
@@ -25,9 +73,10 @@ interface Config {
 }
 
 export default function GeminiVoiceChat() {
+  // Application state management
   const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState(null);
-  const [text, setText] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<Config>({
     systemPrompt: "You are a friendly Gemini 2.0 model. Respond verbally in a casual, helpful tone.",
     voice: "Puck",
@@ -40,116 +89,70 @@ export default function GeminiVoiceChat() {
     enableThinking: false,
     enableVAD: true
   });
-  const [isConnected, setIsConnected] = useState(false);
+
+  // Chat and conversation state
+  const [chatMode, setChatMode] = useState<'audio' | 'video' | null>(null);
+  const [videoEnabled, setVideoEnabled] = useState(false);
+  const [videoSource, setVideoSource] = useState<'camera' | 'screen' | null>(null);
+  const [tokenCount, setTokenCount] = useState(0);
+  const [modelLimits, setModelLimits] = useState<any>(null);
+  const [conversation, setConversation] = useState<Array<{role: string, content: string, type?: string}>>([]);
+  const [text, setText] = useState('');
+  const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
+  const [currentUserMessage, setCurrentUserMessage] = useState('');
+  const [currentThinking, setCurrentThinking] = useState('');
+
+  // Component references for WebSocket, audio, and video handling
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioInputRef = useRef<any>(null);
   const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const clientId = useRef(crypto.randomUUID());
-  const [videoEnabled, setVideoEnabled] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoStreamRef = useRef<MediaStream | null>(null);
   const videoIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [chatMode, setChatMode] = useState<'audio' | 'video' | null>(null);
-  const [videoSource, setVideoSource] = useState<'camera' | 'screen' | null>(null);
-  const [tokenCount, setTokenCount] = useState(0);
-  const [modelLimits, setModelLimits] = useState<any>(null);
-  const [conversation, setConversation] = useState<Array<{role: string, content: string, type?: string}>>([]);
-  const [isListening, setIsListening] = useState(false);
-  const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
-  const [currentUserMessage, setCurrentUserMessage] = useState('');
-  const [currentThinking, setCurrentThinking] = useState('');
 
-  // API Service and polling for hybrid architecture
-  const [apiService] = useState(() => GeminiApiService.getInstance());
-  const [tokenPollingInterval, setTokenPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  // API service and token polling management
+  const apiService = GeminiApiService.getInstance();
+  const tokenPollingInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Available models
-  const models = [
-    {
-      id: "gemini-live-2.5-flash-preview",
-      name: "Gemini Live 2.5 Flash (Recommended)",
-      type: "half_cascade",
-      recommended: true,
-      limits: "3 sessions, 1M TPM (Free)"
-    },
-    {
-      id: "gemini-2.5-flash-preview-native-audio-dialog",
-      name: "Gemini 2.5 Flash Native Audio Dialog",
-      type: "native_audio",
-      recommended: false,
-      limits: "⚠️ 1 session, 25K TPM (Free)",
-      warning: "Very restrictive limits"
-    },
-    {
-      id: "gemini-2.5-flash-exp-native-audio-thinking-dialog",
-      name: "Gemini 2.5 Flash Native Audio Thinking",
-      type: "native_audio",
-      recommended: false,
-      limits: "⚠️ 1 session, 10K TPM (Free)",
-      warning: "Extremely restrictive limits"
-    }
-  ];
+  // Audio buffer management for real-time playback
+  const audioBuffer = useRef<Float32Array[]>([]);
+  const isPlaying = useRef(false);
 
-  // Available voices (expanded list)
-  const voices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr"];
-
-  // Available languages
-  const languages = [
-    { code: "auto", name: "Auto-detect" },
-    { code: "en-US", name: "English (US)" },
-    { code: "en-GB", name: "English (UK)" },
-    { code: "fr-FR", name: "French" },
-    { code: "es-ES", name: "Spanish" },
-    { code: "de-DE", name: "German" },
-    { code: "it-IT", name: "Italian" },
-    { code: "pt-BR", name: "Portuguese (Brazil)" },
-    { code: "ja-JP", name: "Japanese" },
-    { code: "ko-KR", name: "Korean" },
-    { code: "cmn-CN", name: "Chinese (Mandarin)" },
-    { code: "hi-IN", name: "Hindi" },
-    { code: "ar-XA", name: "Arabic" },
-    { code: "ru-RU", name: "Russian" }
-  ];
-  let audioBuffer: Float32Array[] = []
-  let isPlaying = false
-
-  // Function to get model info from existing models array
+  // Get model configuration and limits information
   const getModelInfo = useCallback((modelId: string) => {
-    return models.find(model => model.id === modelId) || {
+    return MODELS.find(model => model.id === modelId) || {
       id: modelId,
       name: modelId,
       type: "unknown",
       recommended: false,
       limits: "N/A"
     };
-  }, [models]);
+  }, []);
 
-  // Token polling functions for hybrid architecture
+  // Start periodic token usage monitoring
   const startTokenPolling = useCallback(() => {
-    const interval = setInterval(async () => {
+    if (tokenPollingInterval.current) return;
+
+    tokenPollingInterval.current = setInterval(async () => {
       try {
         const tokenData = await apiService.getTokenUsage(clientId.current);
-        setTokenCount(tokenData.total_tokens);
-        // Update model limits from API if available, otherwise keep current
-        if (tokenData.limits) {
-          setModelLimits(tokenData.limits);
-        }
+        setTokenCount(tokenData.total_tokens || 0);
+        if (tokenData.limits) setModelLimits(tokenData.limits);
       } catch (error) {
         console.error('Token polling failed:', error);
       }
-    }, 5000); // Poll every 5 seconds
-
-    setTokenPollingInterval(interval);
+    }, 5000);
   }, [apiService]);
 
   const stopTokenPolling = useCallback(() => {
-    if (tokenPollingInterval) {
-      clearInterval(tokenPollingInterval);
-      setTokenPollingInterval(null);
+    if (tokenPollingInterval.current) {
+      clearInterval(tokenPollingInterval.current);
+      tokenPollingInterval.current = null;
     }
-  }, [tokenPollingInterval]);
+  }, []);
 
   // Initialize model limits on component mount
   useEffect(() => {
@@ -158,14 +161,10 @@ export default function GeminiVoiceChat() {
   }, [config.model]);
 
   const startStream = async (mode: 'audio' | 'camera' | 'screen') => {
+    setChatMode(mode === 'audio' ? 'audio' : 'video');
+    if (mode !== 'audio') setVideoSource(mode);
 
-    if (mode !== 'audio') {
-      setChatMode('video');
-    } else {
-      setChatMode('audio');
-    }
-
-    wsRef.current = new WebSocket(`ws://localhost:8000/ws/${clientId.current}`);
+    wsRef.current = new WebSocket(`${BACKEND_URL.replace('http', 'ws')}/ws/${clientId.current}`);
     
     wsRef.current.onopen = async () => {
       wsRef.current.send(JSON.stringify({
@@ -347,24 +346,24 @@ export default function GeminiVoiceChat() {
     setCurrentThinking('');
   };
 
-  const playAudioData = async (audioData) => {
-    audioBuffer.push(audioData)
-    if (!isPlaying) {
-      playNextInQueue(); // Start playback if not already playing
-      }
+  const playAudioData = async (audioData: Float32Array) => {
+    audioBuffer.current.push(audioData);
+    if (!isPlaying.current) {
+      playNextInQueue();
     }
+  };
 
   const playNextInQueue = async () => {
-    if (!audioContextRef.current || audioBuffer.length == 0) {
-      isPlaying = false;
+    if (!audioContextRef.current || audioBuffer.current.length === 0) {
+      isPlaying.current = false;
       return;
     }
 
-    isPlaying = true
-    const audioData = audioBuffer.shift()
+    isPlaying.current = true;
+    const audioData = audioBuffer.current.shift();
 
     if (!audioData) {
-      isPlaying = false;
+      isPlaying.current = false;
       return;
     }
 
@@ -375,34 +374,30 @@ export default function GeminiVoiceChat() {
     source.buffer = buffer;
     source.connect(audioContextRef.current.destination);
 
-    // Store reference to current audio source for interruption
     currentAudioSourceRef.current = source;
 
     source.onended = () => {
       currentAudioSourceRef.current = null;
-      playNextInQueue()
-    }
+      playNextInQueue();
+    };
     source.start();
   };
 
-  // Function to stop current audio playback immediately
+  // Audio playback control functions
   const stopCurrentAudio = () => {
     if (currentAudioSourceRef.current) {
       try {
         currentAudioSourceRef.current.stop();
         currentAudioSourceRef.current = null;
-        console.log('✅ Current audio stopped');
       } catch (error) {
-        console.log('Audio already stopped or error stopping:', error);
+        console.log('Audio already stopped:', error);
       }
     }
-    isPlaying = false;
+    isPlaying.current = false;
   };
 
-  // Function to clear audio buffer
   const clearAudioBuffer = () => {
-    audioBuffer.length = 0;
-    console.log('✅ Audio buffer cleared');
+    audioBuffer.current.length = 0;
   };
 
   useEffect(() => {
@@ -566,7 +561,7 @@ export default function GeminiVoiceChat() {
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {models.map((model) => (
+                  {MODELS.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
@@ -602,7 +597,7 @@ export default function GeminiVoiceChat() {
                   <SelectValue placeholder="Select a language" />
                 </SelectTrigger>
                 <SelectContent>
-                  {languages.map((lang) => (
+                  {LANGUAGES.map((lang) => (
                     <SelectItem key={lang.code} value={lang.code}>
                       {lang.name}
                     </SelectItem>
@@ -633,7 +628,7 @@ export default function GeminiVoiceChat() {
                   <SelectValue placeholder="Select a voice" />
                 </SelectTrigger>
                 <SelectContent>
-                  {voices.map((voice) => (
+                  {VOICES.map((voice) => (
                     <SelectItem key={voice} value={voice}>
                       {voice}
                     </SelectItem>
