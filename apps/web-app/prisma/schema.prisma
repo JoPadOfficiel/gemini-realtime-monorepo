@@ -117,3 +117,18 @@ model UserActivity {
   @@index([createdAt])
   @@map(name: "user_activities")
 }
+
+model ModelPricing {
+  id                    String   @id @default(cuid())
+  modelId               String   @unique
+  modelName             String
+  textInputPricePerMillion   Float    // Price per 1M text input tokens in USD
+  textOutputPricePerMillion  Float    // Price per 1M text output tokens in USD
+  audioInputPricePerMillion  Float?   // Price per 1M audio input tokens in USD
+  audioOutputPricePerMillion Float?   // Price per 1M audio output tokens in USD
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now()) @map(name: "created_at")
+  updatedAt             DateTime @updatedAt @map(name: "updated_at")
+
+  @@map(name: "model_pricing")
+}
