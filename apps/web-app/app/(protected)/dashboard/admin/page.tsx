@@ -6,6 +6,7 @@ import { DashboardHeader } from "@/components/dashboard/header";
 import AdminDashboard from "@/components/admin/admin-dashboard";
 import UsersList from "@/components/admin/users-list";
 import { ModelConfiguration } from "@/components/admin/model-configuration";
+import PricingConfiguration from "@/components/admin/pricing-configuration";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const metadata = constructMetadata({
@@ -25,10 +26,11 @@ export default async function AdminPage() {
       />
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="models">Gemini Models</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing Config</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -41,6 +43,10 @@ export default async function AdminPage() {
 
         <TabsContent value="models" className="space-y-6">
           <ModelConfiguration />
+        </TabsContent>
+
+        <TabsContent value="pricing" className="space-y-6">
+          <PricingConfiguration />
         </TabsContent>
       </Tabs>
     </>
