@@ -628,8 +628,35 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         if config_data.get("type") != "config":
             raise ValueError("First message must be configuration")
 
-        # Set the configuration
-        gemini.set_config(config_data.get("config", {}))
+        # Get user_id from config and load user settings
+        user_id = config_data.get("config", {}).get("user_id", "default-user")
+        user_config = user_settings.get(user_id, {
+            "user_id": user_id,
+            "voice": "Puck",
+            "language": "auto",
+            "enable_proactive_audio": False,
+            "enable_affective_dialog": False,
+            "enable_vad": True,
+            "enable_google_search": True
+        })
+
+        # Merge user settings with frontend config (frontend config takes precedence)
+        frontend_config = config_data.get("config", {})
+        merged_config = {
+            "model": frontend_config.get("model", "gemini-live-2.5-flash-preview"),
+            "voice": user_config.get("voice", "Puck"),
+            "language": user_config.get("language", "auto"),
+            "enableAffectiveDialog": user_config.get("enable_affective_dialog", False),
+            "enableVAD": user_config.get("enable_vad", True),
+            "enableGoogleSearch": user_config.get("enable_google_search", True),
+            "user_id": user_id
+        }
+
+        print(f"🔧 User settings loaded for {user_id}: {user_config}")
+        print(f"🔧 Merged config: {merged_config}")
+
+        # Set the merged configuration
+        gemini.set_config(merged_config)
 
         # Update session state
         session_states[client_id].model = gemini.model
@@ -1014,9 +1041,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 print(f"Error receiving from Gemini: {e}")
 
         # Run both receiving tasks concurrently
-        async with asyncio.TaskGroup() as tg:
-            tg.create_task(receive_from_client())
-            tg.create_task(receive_from_gemini())
+        # Using asyncio.gather for Python 3.9+ compatibility instead of TaskGroup (3.11+)
+        await asyncio.gather(
+            receive_from_client(),
+            receive_from_gemini(),
+            return_exceptions=True
+        )
 
     except Exception as e:
         error_message = str(e)
