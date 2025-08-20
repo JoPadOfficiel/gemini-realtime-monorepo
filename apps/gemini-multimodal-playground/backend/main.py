@@ -12,6 +12,7 @@ from websockets import connect
 from typing import Dict, List, Optional
 from simple_memory import get_memory_manager
 from async_memory import async_memory_queue, TaskStatus
+from collections import defaultdict
 
 load_dotenv()
 
@@ -372,6 +373,45 @@ class SessionState:
 
 session_states: Dict[str, SessionState] = {}
 
+# Global statistics storage
+token_usage_history: List[Dict] = []
+session_history: List[Dict] = []
+daily_stats = defaultdict(lambda: {"tokens": 0, "sessions": 0, "messages": 0})
+recent_activities: List[Dict] = []
+
+# Global configuration storage
+available_models: List[Dict] = [
+    {
+        "id": "gemini-live-2.5-flash-preview",
+        "name": "Gemini Live 2.5 Flash (Recommended)",
+        "type": "half_cascade",
+        "recommended": True,
+        "limits": "3 sessions, 1M TPM (Free)",
+        "enabled": True
+    },
+    {
+        "id": "gemini-2.5-flash-preview-native-audio-dialog",
+        "name": "Gemini 2.5 Flash Native Audio Dialog",
+        "type": "native_audio",
+        "recommended": False,
+        "limits": "⚠️ 1 session, 25K TPM (Free)",
+        "warning": "Very restrictive limits",
+        "enabled": True
+    },
+    {
+        "id": "gemini-2.5-flash-exp-native-audio-thinking-dialog",
+        "name": "Gemini 2.5 Flash Native Audio Thinking",
+        "type": "native_audio",
+        "recommended": False,
+        "limits": "⚠️ 1 session, 10K TPM (Free)",
+        "warning": "Extremely restrictive limits",
+        "enabled": True
+    }
+]
+
+user_model_access: Dict[str, List[Dict]] = {}  # user_id -> list of model access configs
+user_settings: Dict[str, Dict] = {}  # user_id -> user settings
+
 # Pydantic models for API requests/responses
 class MemoryQuery(BaseModel):
     """Query model for searching conversation memory"""
@@ -517,6 +557,56 @@ class SessionInfo(BaseModel):
             }
         }
     )
+
+class TokenStats(BaseModel):
+    """Token usage statistics for dashboard"""
+    totalTokens: int = Field(..., description="Total tokens used across all sessions")
+    todayTokens: int = Field(..., description="Tokens used today")
+    weeklyTokens: int = Field(..., description="Tokens used this week")
+    monthlyTokens: int = Field(..., description="Tokens used this month")
+    limit: int = Field(..., description="Monthly token limit")
+
+class SessionStats(BaseModel):
+    """Session statistics for dashboard"""
+    totalSessions: int = Field(..., description="Total number of sessions")
+    todaySessions: int = Field(..., description="Sessions started today")
+    averageSessionDuration: int = Field(..., description="Average session duration in seconds")
+    totalMessages: int = Field(..., description="Total messages across all sessions")
+
+class DashboardActivity(BaseModel):
+    """Recent activity item for dashboard"""
+    type: str = Field(..., description="Type of activity (audio, video, screen)")
+    description: str = Field(..., description="Human-readable description")
+    tokens_used: int = Field(..., description="Tokens used in this activity")
+    timestamp: str = Field(..., description="ISO timestamp of the activity")
+    mode: str = Field(..., description="Session mode (audio, video, screen)")
+
+class ModelConfig(BaseModel):
+    """Model configuration for admin management"""
+    id: str = Field(..., description="Model ID")
+    name: str = Field(..., description="Human-readable model name")
+    type: str = Field(..., description="Model type (half_cascade, native_audio)")
+    recommended: bool = Field(..., description="Whether this model is recommended")
+    limits: str = Field(..., description="Model usage limits")
+    warning: Optional[str] = Field(None, description="Warning message for restrictive models")
+    enabled: bool = Field(True, description="Whether this model is enabled globally")
+
+class UserModelAccess(BaseModel):
+    """User-specific model access configuration"""
+    user_id: str = Field(..., description="User ID")
+    model_id: str = Field(..., description="Model ID")
+    enabled: bool = Field(..., description="Whether user has access to this model")
+    is_default: bool = Field(False, description="Whether this is the default model for the user")
+
+class UserSettings(BaseModel):
+    """User-configurable settings"""
+    user_id: str = Field(..., description="User ID")
+    voice: str = Field("Puck", description="Selected voice")
+    language: str = Field("auto", description="Selected language")
+    enable_proactive_audio: bool = Field(False, description="Enable proactive audio")
+    enable_affective_dialog: bool = Field(False, description="Enable affective dialog")
+    enable_vad: bool = Field(True, description="Enable voice activity detection")
+    enable_google_search: bool = Field(True, description="Enable Google search integration")
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -1181,6 +1271,52 @@ async def get_token_usage(session_id: str):
     raise HTTPException(status_code=404, detail="Session not found")
 
 # Session Management APIs
+@app.get("/api/sessions/stats", response_model=SessionStats, tags=["Sessions"])
+async def get_session_stats():
+    """Get session statistics for dashboard"""
+    from datetime import datetime, timedelta
+
+    now = datetime.now()
+    today = now.date()
+
+    total_sessions = len(connections) + len(session_states)
+    today_sessions = 0
+    total_duration = 0
+    session_count = 0
+    total_messages = 0
+
+    # Count today's sessions and calculate durations
+    for connection in connections.values():
+        today_sessions += 1  # Active sessions are assumed to be from today
+        # Estimate duration for active sessions (time since creation)
+        if hasattr(connection, 'created_at'):
+            duration = (now - connection.created_at).total_seconds()
+            total_duration += duration
+            session_count += 1
+
+    for session_id, state in session_states.items():
+        if session_id not in connections:  # Don't double count
+            if state.created_at.date() == today:
+                today_sessions += 1
+
+            # Calculate session duration
+            duration = (state.last_activity - state.created_at).total_seconds()
+            total_duration += duration
+            session_count += 1
+
+            # Estimate messages (tokens / average tokens per message)
+            total_messages += max(1, state.token_count // 50)  # Assume ~50 tokens per message
+
+    # Calculate average session duration
+    avg_duration = int(total_duration / max(session_count, 1))
+
+    return SessionStats(
+        totalSessions=total_sessions,
+        todaySessions=today_sessions,
+        averageSessionDuration=avg_duration,
+        totalMessages=total_messages
+    )
+
 @app.get("/api/sessions", tags=["Sessions"])
 async def list_active_sessions():
     """List all active WebSocket sessions and session states"""
@@ -1242,6 +1378,225 @@ async def get_session_info(session_id: str):
         model=connection.model,
         token_count=connection.token_count
     )
+
+# Dashboard Statistics APIs
+@app.get("/api/tokens/stats", response_model=TokenStats, tags=["Tokens"])
+async def get_token_stats():
+    """Get token usage statistics for dashboard"""
+    from datetime import datetime, timedelta
+
+    now = datetime.now()
+    today = now.date()
+    week_ago = now - timedelta(days=7)
+    month_ago = now - timedelta(days=30)
+
+    # Calculate totals from session states and active connections
+    total_tokens = 0
+    today_tokens = 0
+    weekly_tokens = 0
+    monthly_tokens = 0
+
+    # Count tokens from active connections
+    for connection in connections.values():
+        total_tokens += connection.token_count
+        # For active sessions, assume they're from today
+        today_tokens += connection.token_count
+        weekly_tokens += connection.token_count
+        monthly_tokens += connection.token_count
+
+    # Count tokens from session history
+    for session_id, state in session_states.items():
+        if session_id not in connections:  # Don't double count active sessions
+            total_tokens += state.token_count
+
+            # Check if session is from today
+            if state.created_at.date() == today:
+                today_tokens += state.token_count
+
+            # Check if session is from this week
+            if state.created_at >= week_ago:
+                weekly_tokens += state.token_count
+
+            # Check if session is from this month
+            if state.created_at >= month_ago:
+                monthly_tokens += state.token_count
+
+    return TokenStats(
+        totalTokens=total_tokens,
+        todayTokens=today_tokens,
+        weeklyTokens=weekly_tokens,
+        monthlyTokens=monthly_tokens,
+        limit=1000000  # 1M tokens default limit
+    )
+
+@app.get("/api/dashboard/activities", tags=["Sessions"])
+async def get_recent_activities():
+    """Get recent activities for dashboard"""
+    activities = []
+
+    # Add recent sessions as activities
+    all_sessions = []
+
+    # Add active sessions
+    for session_id, connection in connections.items():
+        all_sessions.append({
+            "session_id": session_id,
+            "tokens": connection.token_count,
+            "model": connection.model,
+            "timestamp": datetime.now(),  # Active sessions
+            "status": "active"
+        })
+
+    # Add session history
+    for session_id, state in session_states.items():
+        if session_id not in connections:
+            all_sessions.append({
+                "session_id": session_id,
+                "tokens": state.token_count,
+                "model": state.model,
+                "timestamp": state.last_activity,
+                "status": state.status
+            })
+
+    # Sort by timestamp and take the 10 most recent
+    all_sessions.sort(key=lambda x: x["timestamp"], reverse=True)
+    recent_sessions = all_sessions[:10]
+
+    # Convert to activity format
+    for session in recent_sessions:
+        mode = "audio"  # Default mode
+        if "video" in session["model"].lower():
+            mode = "video"
+        elif "screen" in session["model"].lower():
+            mode = "screen"
+
+        description = f"{mode.title()} session"
+        if session["status"] == "active":
+            description += " (active)"
+        else:
+            description += " completed"
+
+        activities.append({
+            "type": mode,
+            "description": description,
+            "tokens_used": session["tokens"],
+            "timestamp": session["timestamp"].isoformat(),
+            "mode": mode
+        })
+
+    return {"activities": activities}
+
+# Admin Model Configuration APIs
+@app.get("/api/admin/models", tags=["Admin"])
+async def get_available_models():
+    """Get all available models (admin only)"""
+    return {"models": available_models}
+
+@app.post("/api/admin/models", tags=["Admin"])
+async def update_model_config(model_config: ModelConfig):
+    """Update model configuration (admin only)"""
+    global available_models
+
+    # Find and update existing model or add new one
+    model_found = False
+    for i, model in enumerate(available_models):
+        if model["id"] == model_config.id:
+            available_models[i] = model_config.model_dump()
+            model_found = True
+            break
+
+    if not model_found:
+        available_models.append(model_config.model_dump())
+
+    return {"success": True, "message": "Model configuration updated"}
+
+@app.get("/api/admin/users/{user_id}/models", tags=["Admin"])
+async def get_user_model_access(user_id: str):
+    """Get model access configuration for a specific user (admin only)"""
+    user_access = user_model_access.get(user_id, [])
+
+    # If user has no specific configuration, return all enabled models as accessible
+    if not user_access:
+        user_access = [
+            {
+                "user_id": user_id,
+                "model_id": model["id"],
+                "enabled": model["enabled"],
+                "is_default": model["recommended"]
+            }
+            for model in available_models
+        ]
+
+    return {"user_id": user_id, "model_access": user_access}
+
+@app.post("/api/admin/users/{user_id}/models", tags=["Admin"])
+async def update_user_model_access(user_id: str, model_access: List[UserModelAccess]):
+    """Update model access for a specific user (admin only)"""
+    global user_model_access
+
+    # Validate that only one model can be default
+    default_models = [access for access in model_access if access.is_default]
+    if len(default_models) > 1:
+        raise HTTPException(status_code=400, detail="Only one model can be set as default per user")
+
+    user_model_access[user_id] = [access.model_dump() for access in model_access]
+
+    return {"success": True, "message": f"Model access updated for user {user_id}"}
+
+# User Settings APIs
+@app.get("/api/users/{user_id}/settings", tags=["Users"])
+async def get_user_settings(user_id: str):
+    """Get user settings"""
+    settings = user_settings.get(user_id, {
+        "user_id": user_id,
+        "voice": "Puck",
+        "language": "auto",
+        "enable_proactive_audio": False,
+        "enable_affective_dialog": False,
+        "enable_vad": True,
+        "enable_google_search": True
+    })
+
+    return settings
+
+@app.post("/api/users/{user_id}/settings", tags=["Users"])
+async def update_user_settings(user_id: str, settings: UserSettings):
+    """Update user settings"""
+    global user_settings
+
+    user_settings[user_id] = settings.model_dump()
+
+    return {"success": True, "message": "User settings updated"}
+
+@app.get("/api/users/{user_id}/available-models", tags=["Users"])
+async def get_user_available_models(user_id: str):
+    """Get models available to a specific user"""
+    user_access = user_model_access.get(user_id, [])
+
+    # If user has no specific configuration, return all enabled models
+    if not user_access:
+        available_to_user = [model for model in available_models if model["enabled"]]
+    else:
+        # Filter models based on user access configuration
+        accessible_model_ids = [access["model_id"] for access in user_access if access["enabled"]]
+        available_to_user = [model for model in available_models if model["id"] in accessible_model_ids]
+
+    # Find default model for user
+    default_model = None
+    if user_access:
+        default_access = next((access for access in user_access if access["is_default"]), None)
+        if default_access:
+            default_model = default_access["model_id"]
+
+    if not default_model and available_to_user:
+        # Use first recommended model as default, or first available model
+        recommended_models = [model for model in available_to_user if model.get("recommended", False)]
+        default_model = recommended_models[0]["id"] if recommended_models else available_to_user[0]["id"]
+
+    return {
+        "models": available_to_user,
+        "default_model": default_model
+    }
 
 if __name__ == "__main__":
     import uvicorn
