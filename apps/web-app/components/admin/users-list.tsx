@@ -211,7 +211,7 @@ export default function UsersList() {
                   <TableCell className="hidden md:table-cell">
                     <div className="text-center">
                       <div className="font-semibold">{user._count.tokenUsages.toLocaleString()}</div>
-                      <div className="text-xs text-muted-foreground">uses</div>
+                      <div className="text-xs text-muted-foreground">tokens</div>
                     </div>
                   </TableCell>
                   {/* Activities column - visible from LG up */}
