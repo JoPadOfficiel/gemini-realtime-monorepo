@@ -8,10 +8,10 @@ export default function TestLoginPage() {
   const handleTestLogin = async () => {
     try {
       // Force sign in with the test user
-      await signIn("email", { 
+      await signIn("email", {
         email: "test@example.com",
         redirect: true,
-        callbackUrl: "/dashboard/gemini-playground"
+        callbackUrl: "/dashboard"
       });
     } catch (error) {
       console.error("Test login failed:", error);
