@@ -59,17 +59,35 @@ class AsyncMemoryQueue:
             raise ValueError("Memory manager does not have a valid Mem0 client")
 
         if not self.worker_running:
-            asyncio.create_task(self._worker())
-            self.worker_running = True
-            logger.info("🚀 Async Memory Queue initialized and worker started")
-    
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._worker())
+                self.worker_running = True
+                logger.info("🚀 Async Memory Queue initialized and worker started")
+            except RuntimeError:
+                # No event loop running, worker will be started when first task is queued
+                logger.info("🚀 Async Memory Queue initialized, worker will start when needed")
+
+    async def _ensure_worker_running(self):
+        """Ensure the worker is running in the current event loop"""
+        if not self.worker_running:
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._worker())
+                self.worker_running = True
+                logger.info("🚀 Async Memory Worker started")
+            except RuntimeError as e:
+                logger.error(f"❌ Failed to start worker: {e}")
+
     async def queue_memory_save(self, session_id: str, messages: List[Dict]) -> str:
         """
         Queue memory save operation (non-blocking)
         Returns task_id immediately for tracking
         """
+        await self._ensure_worker_running()
+
         task_id = str(uuid.uuid4())
-        
+
         task = MemoryTask(
             task_id=task_id,
             session_id=session_id,
@@ -79,10 +97,10 @@ class AsyncMemoryQueue:
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
-        
+
         self.tasks[task_id] = task
         await self.processing_queue.put(task_id)
-        
+
         logger.info(f"📝 Memory save queued for session {session_id[:8]}... (task: {task_id[:8]}...)")
         return task_id
     
@@ -91,8 +109,10 @@ class AsyncMemoryQueue:
         Queue memory query operation (non-blocking)
         Returns task_id immediately for tracking
         """
+        await self._ensure_worker_running()
+
         task_id = str(uuid.uuid4())
-        
+
         task = MemoryTask(
             task_id=task_id,
             session_id=session_id,
@@ -200,7 +220,7 @@ class AsyncMemoryQueue:
             logger.info(f"   Messages preview: {json.dumps(messages[:1], indent=2, ensure_ascii=False) if messages else 'No messages'}")
 
             # Use thread pool for blocking Mem0 call with correct parameters
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: self.mem0_client.add(
@@ -240,7 +260,7 @@ class AsyncMemoryQueue:
 
         try:
             # Use thread pool for blocking Mem0 call with correct parameters
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: self.mem0_client.search(
