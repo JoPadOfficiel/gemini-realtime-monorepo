@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, StopCircle, Settings, Volume2, VolumeX, BarChart3, MessageCircle } from 'lucide-react';
+import { Mic, StopCircle, Settings, Volume2, VolumeX, BarChart3, MessageCircle, Cpu, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { base64ToFloat32Array, float32ToPcm16, GeminiApiService } from '@/lib/gemini-utils';
 import { GeminiQuickActions } from './GeminiQuickActions';
 import { GeminiConversationHistory } from './GeminiConversationHistory';
@@ -50,7 +51,9 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+  const [availableModels, setAvailableModels] = useState<any[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
+
   const [config, setConfig] = useState<Config>({
     systemPrompt: "You are a friendly Gemini 2.0 model. Respond verbally in a casual, helpful tone. If the user speaks in French, respond in French. If the user speaks in English, respond in English. Adapt to the user's language automatically.",
     voice: "Puck",
@@ -63,6 +66,106 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
     enableThinking: false,
     enableVAD: true
   });
+
+  // Load user settings on component mount
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await fetch(`http://localhost:8000/api/users/${user.id}/settings`);
+        if (response.ok) {
+          const userSettings = await response.json();
+          console.log('🔧 Loading user settings:', userSettings);
+
+          // Update config with user settings
+          setConfig(prev => ({
+            ...prev,
+            voice: userSettings.voice || prev.voice,
+            language: userSettings.language || prev.language,
+            enableProactiveAudio: userSettings.enable_proactive_audio ?? prev.enableProactiveAudio,
+            enableAffectiveDialog: userSettings.enable_affective_dialog ?? prev.enableAffectiveDialog,
+            enableVAD: userSettings.enable_vad ?? prev.enableVAD,
+            googleSearch: userSettings.enable_google_search ?? prev.googleSearch
+          }));
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to load user settings:', error);
+      }
+    };
+
+    loadUserSettings();
+  }, [user?.id]);
+
+  // Load available models on component mount
+  useEffect(() => {
+    const loadAvailableModels = async () => {
+      if (!user?.id) return;
+
+      try {
+        setIsLoadingModels(true);
+
+        // First, try to get user-specific model access
+        const userModelsResponse = await fetch(`http://localhost:8000/api/admin/users/${user.id}/models`);
+        let userModels = [];
+
+        if (userModelsResponse.ok) {
+          const userModelData = await userModelsResponse.json();
+          console.log('🔧 User-specific models raw:', userModelData);
+
+          // Extract models from the response format and filter enabled ones
+          if (userModelData && userModelData.model_access) {
+            userModels = userModelData.model_access.filter((model: any) => model.enabled);
+            console.log('🔧 Extracted user models:', userModelData.model_access);
+            console.log('🔧 Filtered enabled models:', userModels);
+          }
+        }
+
+        // If no user-specific models, get global models
+        if (userModels.length === 0) {
+          const globalModelsResponse = await fetch('http://localhost:8000/api/admin/models');
+          if (globalModelsResponse.ok) {
+            const globalModels = await globalModelsResponse.json();
+            // Filter only enabled models
+            userModels = globalModels.filter((model: any) => model.enabled);
+            console.log('🔧 Global enabled models:', userModels);
+          }
+        }
+
+        setAvailableModels(userModels);
+
+        // Set default model if available
+        if (userModels.length > 0) {
+          console.log('🔧 Available models structure:', userModels);
+
+          // Find default model (look for is_default: true or recommended: true)
+          const defaultModel = userModels.find((m: any) => m.is_default || m.recommended) || userModels[0];
+          console.log('🔧 Selected default model:', defaultModel);
+
+          if (defaultModel && defaultModel.model_id) {
+            setConfig(prev => ({
+              ...prev,
+              model: defaultModel.model_id
+            }));
+            console.log('🔧 Default model set to:', defaultModel.model_id);
+          }
+        }
+
+      } catch (error) {
+        console.warn('⚠️ Failed to load available models:', error);
+        // Fallback to default model
+        setAvailableModels([{
+          id: "gemini-live-2.5-flash-preview",
+          name: "Gemini Live 2.5 Flash (Fallback)",
+          enabled: true
+        }]);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    loadAvailableModels();
+  }, [user?.id]);
 
   // Refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -231,11 +334,18 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
         console.log('WebSocket connected');
         setIsConnected(true);
 
-        // Send configuration
+        // Send configuration with user_id
         if (wsRef.current) {
+          const configWithUserId = {
+            ...config,
+            user_id: user?.id || 'default-user'
+          };
+
+          console.log('🔧 Sending config with user_id:', configWithUserId);
+
           wsRef.current.send(JSON.stringify({
             type: 'config',
-            config: config
+            config: configWithUserId
           }));
         }
 
@@ -401,6 +511,8 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
         </Alert>
       )}
 
+
+
       {/* Quick Actions */}
       <GeminiQuickActions
         currentMode="audio"
@@ -414,9 +526,15 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
       <GeminiSettingsPopup
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        userId="default-user"
+        userId={user?.id || 'default-user'}
+        availableModels={availableModels}
+        currentModel={config.model}
+        onModelChange={(modelId) => {
+          setConfig(prev => ({ ...prev, model: modelId }));
+          console.log('🔧 Model changed to:', modelId);
+        }}
         onSettingsChange={(settings) => {
-          console.log('Settings updated:', settings);
+          console.log('✅ Settings updated:', settings);
           // Update config with new settings
           setConfig(prev => ({
             ...prev,
