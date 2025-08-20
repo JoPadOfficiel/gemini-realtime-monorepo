@@ -1,0 +1,55 @@
+[ ] NAME:Current Task List DESCRIPTION:Root task for conversation 75ab912d-3c64-431e-b5fb-a39b308f4917
+-[/] NAME:Modernisation complète de la web-app Gemini DESCRIPTION:Projet de modernisation 85% complété - Phases 1,2,3,6 terminées. Reste: Phase 4 (Dashboard CRM) et Phase 5 (Tests finaux)
+--[x] NAME:PHASE 1: Préparation et base de données DESCRIPTION:Création de branche, mise à jour du schéma Prisma avec tracking des tokens, et déploiement de la base de données
+---[x] NAME:Créer nouvelle branche de développement DESCRIPTION:Créer une branche 'feature/gemini-modernization' pour toutes les modifications
+---[x] NAME:Mettre à jour le schéma Prisma DESCRIPTION:Ajouter les modèles TokenUsage et UserActivity pour le tracking des tokens et de l'activité utilisateur
+---[x] NAME:Générer et déployer la base de données DESCRIPTION:Exécuter les migrations Prisma et créer un utilisateur admin de test
+--[x] NAME:PHASE 2: Remplacement Gemini Playground DESCRIPTION:Suppression de l'ancien composant et intégration du nouveau composant depuis gemini-multimodal-playground
+---[x] NAME:Supprimer l'ancien composant Gemini Playground DESCRIPTION:Supprimer le dossier apps/web-app/components/gemini-playground existant
+---[x] NAME:Copier le nouveau composant Gemini Playground DESCRIPTION:Copier le composant depuis apps/gemini-multimodal-playground/frontend/components/gemini-playground.tsx
+---[x] NAME:Intégrer les composants UI manquants DESCRIPTION:Copier et adapter les composants UI nécessaires depuis gemini-multimodal-playground
+---[x] NAME:Mettre à jour les utilitaires et dépendances DESCRIPTION:Adapter les imports et dépendances pour la web-app
+--[x] NAME:PHASE 3: Système de monitoring utilisateurs DESCRIPTION:Système de monitoring utilisateurs complètement implémenté avec gestion des comptes, API endpoints et tracking des tokens
+---[x] NAME:Créer composant de liste des utilisateurs DESCRIPTION:Composant pour afficher tous les utilisateurs inscrits avec données réelles depuis la base de données
+---[x] NAME:Implémenter gestion des comptes utilisateurs DESCRIPTION:Fonctionnalités pour désactiver, supprimer et gérer les comptes utilisateurs
+---[x] NAME:Créer API endpoints pour la gestion utilisateurs DESCRIPTION:Routes API pour récupérer, modifier et supprimer les utilisateurs
+---[x] NAME:Implémenter système de tracking des tokens DESCRIPTION:Système pour enregistrer et suivre l'utilisation des tokens par utilisateur - COMPLÉTÉ avec intégration backend/frontend
+--[ ] NAME:PHASE 4: Dashboard CRM et analytics DESCRIPTION:Refactorisation du dashboard admin avec tracking des tokens et statistiques d'utilisation
+---[ ] NAME:Refactoriser le dashboard admin DESCRIPTION:Remplacer les données statiques par des données réelles et créer un design professionnel
+---[ ] NAME:Créer composants de statistiques des tokens DESCRIPTION:Composants pour afficher les statistiques d'utilisation des tokens par utilisateur
+---[ ] NAME:Implémenter analytics d'utilisation DESCRIPTION:Graphiques et métriques pour suivre l'activité des utilisateurs et l'utilisation des tokens
+---[ ] NAME:Créer dashboard CRM complet DESCRIPTION:Interface complète pour la gestion des clients avec toutes les métriques importantes
+--[ ] NAME:PHASE 5: Tests et validation DESCRIPTION:Tests avec Playwright MCP, validation de la base de données et des fonctionnalités
+---[ ] NAME:Configurer tests Playwright MCP DESCRIPTION:Configurer et exécuter les tests avec Playwright MCP pour valider les fonctionnalités
+---[ ] NAME:Tester connexion base de données DESCRIPTION:Vérifier que la connexion à la base de données fonctionne correctement
+---[ ] NAME:Valider fonctionnalités admin DESCRIPTION:Tester toutes les fonctionnalités admin avec un compte existant
+---[ ] NAME:Tests d'intégration Gemini Playground DESCRIPTION:Vérifier que le nouveau composant Gemini Playground fonctionne correctement
+--[x] NAME:PHASE 6: Refactorisation complète de la page Gemini Live DESCRIPTION:Refactorisation complète de Gemini Live avec interface unifiée, corrections des interruptions, capture vidéo fonctionnelle, et interface responsive
+---[x] NAME:Analyse et préparation de la refactorisation DESCRIPTION:Analyser l'architecture actuelle, identifier les problèmes d'UX/UI, installer les composants shadcn/ui nécessaires (charts, dashboard), et créer la structure des nouveaux composants
+----[x] NAME:Installer les composants shadcn/ui requis DESCRIPTION:Installer les composants chart, sidebar, dashboard et autres composants shadcn/ui nécessaires pour la refactorisation
+----[x] NAME:Créer la structure des nouveaux composants DESCRIPTION:Créer la structure de fichiers pour GeminiLiveLayout, UserDashboard, ConversationPanel, VideoPanel, et autres composants modulaires
+---[x] NAME:Refactorisation de l'interface utilisateur DESCRIPTION:Réorganiser complètement l'interface pour une meilleure visibilité des éléments actifs, créer un layout responsive avec sidebar, et implémenter la navigation intuitive
+----[x] NAME:Créer le layout responsive principal DESCRIPTION:Développer GeminiLiveLayout avec sidebar responsive qui s'adapte aux différents écrans (mobile, tablette, desktop)
+----[x] NAME:Implémenter la navigation entre modes DESCRIPTION:Navigation entre modes audio/vidéo/screen share avec interface unifiée et boutons Settings intégrés - COMPLÉTÉ
+----[x] NAME:Réorganiser les panels de conversation DESCRIPTION:Panels de conversation réorganisés avec interface propre et fonctionnelle - COMPLÉTÉ
+---[x] NAME:Dashboard utilisateur avec analytics DESCRIPTION:Dashboard utilisateur avec analytics complètement implémenté avec tracking temps réel des tokens et sélecteurs de modes
+----[x] NAME:Implémenter les graphiques de crédits DESCRIPTION:Graphiques de crédits implémentés avec affichage temps réel des tokens utilisés - COMPLÉTÉ
+----[x] NAME:Créer les statistiques d'utilisation des modèles DESCRIPTION:Statistiques d'utilisation des modèles avec tracking en temps réel - COMPLÉTÉ
+----[x] NAME:Implémenter les sélecteurs rapides DESCRIPTION:Sélecteurs rapides pour modes et modèles Gemini intégrés dans l'interface - COMPLÉTÉ
+---[x] NAME:Intégration et préservation des fonctionnalités DESCRIPTION:Intégration et préservation des fonctionnalités complète avec WebSocket, tests validés et documentation
+----[x] NAME:Maintenir la compatibilité WebSocket DESCRIPTION:Compatibilité WebSocket maintenue avec corrections des interruptions et capture vidéo - COMPLÉTÉ
+----[x] NAME:Tests de responsivité et validation DESCRIPTION:Tests de responsivité validés avec Playwright MCP, toutes fonctionnalités testées - COMPLÉTÉ
+----[x] NAME:Documentation des changements DESCRIPTION:Documentation des changements effectuée avec validation complète des corrections - COMPLÉTÉ
+-[x] NAME:Analyser et diagnostiquer les problèmes de persistance DESCRIPTION:Identifier tous les problèmes de persistance des paramètres utilisateur dans l'application Gemini Live
+-[/] NAME:Créer la table user_settings dans PostgreSQL DESCRIPTION:Ajouter une table user_settings dans la base de données pour la persistance des paramètres utilisateur
+-[ ] NAME:Modifier l'API backend pour utiliser PostgreSQL DESCRIPTION:Remplacer le stockage en mémoire par des requêtes PostgreSQL pour les paramètres utilisateur
+-[ ] NAME:Créer un hook personnalisé pour les paramètres utilisateur DESCRIPTION:Développer un hook React personnalisé avec cache localStorage et synchronisation API
+-[ ] NAME:Intégrer le chargement automatique dans les interfaces DESCRIPTION:Modifier les interfaces Audio, Video et Screen pour charger automatiquement les paramètres utilisateur
+-[ ] NAME:Tester et valider les corrections DESCRIPTION:Effectuer des tests complets de persistance et synchronisation des paramètres
+-[x] NAME:Analyser l'architecture actuelle de gestion des sessions DESCRIPTION:Examiner le code existant pour comprendre la gestion des connexions WebSocket et les limitations
+-[x] NAME:Concevoir l'architecture de mise à l'échelle DESCRIPTION:Définir une stratégie pour gérer les limitations de l'API Gemini et les sessions multiples
+-[-] NAME:Implémenter le système de gestion des quotas DESCRIPTION:Créer un système de monitoring et de gestion des limites API en temps réel
+-[-] NAME:Développer le système de queue intelligent DESCRIPTION:Implémenter une file d'attente avec priorités pour les demandes de sessions
+-[-] NAME:Créer le gestionnaire de pool de connexions DESCRIPTION:Développer un système de pool de connexions WebSocket partagées
+-[-] NAME:Tester et valider l'architecture de mise à l'échelle DESCRIPTION:Effectuer des tests de charge et valider le comportement sous contraintes
+-[x] NAME:Créer la documentation complète d'architecture de scalabilité DESCRIPTION:Rédiger un document markdown détaillé avec diagrammes Mermaid expliquant l'architecture actuelle, les limitations, et les solutions futures de scalabilité

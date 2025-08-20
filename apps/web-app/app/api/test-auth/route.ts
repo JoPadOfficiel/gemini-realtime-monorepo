@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Redirect to dashboard
-    return NextResponse.redirect(new URL("/dashboard/gemini-playground", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   } catch (error) {
     console.error("Test auth error:", error);
     return NextResponse.json({ error: "Failed to authenticate" }, { status: 500 });
