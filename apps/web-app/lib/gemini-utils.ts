@@ -1,7 +1,7 @@
 export const float32ToPcm16 = (float32Array: Float32Array): Int16Array => {
   const pcm16 = new Int16Array(float32Array.length);
   for (let i = 0; i < float32Array.length; i++) {
-    const s = Math.max(-1, Math.min(1, float32Array[i]));
+    const s = Math.max(-1, Math.min(1, float32Array[i] || 0));
     pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
   }
   return pcm16;
@@ -19,7 +19,7 @@ export const base64ToFloat32Array = (base64: string): Float32Array => {
   // Convert to float32
   const float32 = new Float32Array(pcm16.length);
   for (let i = 0; i < pcm16.length; i++) {
-    float32[i] = pcm16[i] / 32768.0;
+    float32[i] = (pcm16[i] || 0) / 32768.0;
   }
   return float32;
 };
@@ -99,6 +99,78 @@ export class GeminiApiService {
       return await response.json();
     } catch (error) {
       console.error('Failed to add memory:', error);
+      throw error;
+    }
+  }
+
+  // User Settings Management
+  async getUserSettings(userId: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/settings`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch user settings:', error);
+      throw error;
+    }
+  }
+
+  async updateUserSettings(userId: string, settings: any): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to update user settings:', error);
+      throw error;
+    }
+  }
+
+  async getUserAvailableModels(userId: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/available-models`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch user available models:', error);
+      throw error;
+    }
+  }
+
+  // Dashboard Statistics
+  async getDashboardStats(): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/stats`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      throw error;
+    }
+  }
+
+  async getSessionStats(): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/stats`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch session stats:', error);
+      throw error;
+    }
+  }
+
+  async getRecentActivity(): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/activity`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch recent activity:', error);
       throw error;
     }
   }
