@@ -20,7 +20,6 @@ export const sidebarLinks: SidebarNavItem[] = [
         authorizeOnly: UserRole.USER,
       },
       { href: "/dashboard/charts", icon: "lineChart", title: "Charts" },
-      { href: "/dashboard/gemini-playground", icon: "bot", title: "Gemini AI Playground" },
       {
         href: "/dashboard/admin/orders",
         icon: "package",
@@ -35,6 +34,14 @@ export const sidebarLinks: SidebarNavItem[] = [
         authorizeOnly: UserRole.USER,
         disabled: true,
       },
+    ],
+  },
+  {
+    title: "GEMINI LIVE",
+    items: [
+      { href: "/dashboard/gemini-live/audio", icon: "mic", title: "Audio Chat" },
+      { href: "/dashboard/gemini-live/video", icon: "video", title: "Video Chat" },
+      { href: "/dashboard/gemini-live/screen", icon: "monitor", title: "Screen Share" },
     ],
   },
   {
