@@ -63,17 +63,44 @@ async def init_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Create user_settings table
+        print("⚙️ Creating user_settings table...")
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_settings (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL UNIQUE,
+                voice VARCHAR(50) DEFAULT 'Puck',
+                language VARCHAR(10) DEFAULT 'auto',
+                enable_proactive_audio BOOLEAN DEFAULT FALSE,
+                enable_affective_dialog BOOLEAN DEFAULT FALSE,
+                enable_vad BOOLEAN DEFAULT TRUE,
+                enable_google_search BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
         # Create indexes for better performance
         print("🔍 Creating indexes...")
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_conversations_session_id 
+            CREATE INDEX IF NOT EXISTS idx_conversations_session_id
             ON conversations(session_id)
         """)
-        
+
         await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_conversations_created_at 
+            CREATE INDEX IF NOT EXISTS idx_conversations_created_at
             ON conversations(created_at)
+        """)
+
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_user_settings_user_id
+            ON user_settings(user_id)
+        """)
+
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_user_settings_updated_at
+            ON user_settings(updated_at)
         """)
         
         # Test the setup by inserting a sample conversation
