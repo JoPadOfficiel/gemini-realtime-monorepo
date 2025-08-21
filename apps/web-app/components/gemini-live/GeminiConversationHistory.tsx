@@ -101,7 +101,7 @@ export function GeminiConversationHistory({
   }
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -137,9 +137,9 @@ export function GeminiConversationHistory({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[400px] w-full pr-4" ref={scrollAreaRef}>
-          <div className="space-y-4">
+      <CardContent className="flex-1 flex flex-col overflow-hidden">
+        <ScrollArea className="flex-1 max-h-[500px] lg:max-h-[600px] w-full pr-4" ref={scrollAreaRef}>
+          <div className="space-y-4 p-6">
             {/* Historical messages */}
             {conversation.map((message, index) => (
               <div

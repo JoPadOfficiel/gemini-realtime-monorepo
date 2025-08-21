@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Video, StopCircle, Camera, CameraOff, Mic, MicOff } from 'lucide-react';
+import { Video, StopCircle, Camera, CameraOff, Mic, MicOff, BarChart3, MessageCircle, Cpu } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { GeminiQuickActions } from './GeminiQuickActions';
 import { GeminiConversationHistory } from './GeminiConversationHistory';
-import { GeminiSessionStats } from './GeminiSessionStats';
 import { GeminiSettingsPopup } from './GeminiSettingsPopup';
 import { base64ToFloat32Array, float32ToPcm16, GeminiApiService } from '@/lib/gemini-utils';
 
@@ -445,23 +445,24 @@ export function GeminiVideoInterface({ user }: GeminiVideoInterfaceProps) {
         }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Video Controls */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Video className="h-5 w-5" />
+      <div className="space-y-6">
+        {/* Mobile/Tablet Layout */}
+        <div className="lg:hidden space-y-6">
+          {/* Video Controls */}
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Video className="h-4 w-4" />
                 Video Controls
                 {isStreaming && (
-                  <Badge variant="default" className="animate-pulse">
+                  <Badge variant="default" className="animate-pulse text-xs">
                     Live
                   </Badge>
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Video Display */}
+            <CardContent className="space-y-4">
+              {/* Compact Video Display */}
               <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                 <video
                   ref={videoRef}
@@ -477,90 +478,359 @@ export function GeminiVideoInterface({ user }: GeminiVideoInterfaceProps) {
                   width={640}
                   height={480}
                 />
-                
-                {/* Video overlay controls */}
+
+                {/* Compact overlay controls */}
                 {isStreaming && (
-                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1">
                     <Button
                       onClick={toggleMicrophone}
                       variant={isMicEnabled ? "default" : "destructive"}
                       size="sm"
-                      className="rounded-full w-10 h-10 p-0"
+                      className="rounded-full w-6 h-6 p-0"
                     >
                       {isMicEnabled ? (
-                        <Mic className="h-4 w-4" />
+                        <Mic className="h-3 w-3" />
                       ) : (
-                        <MicOff className="h-4 w-4" />
+                        <MicOff className="h-3 w-3" />
                       )}
                     </Button>
-                    
+
                     <Button
                       onClick={toggleCamera}
                       variant={isCameraEnabled ? "default" : "destructive"}
                       size="sm"
-                      className="rounded-full w-10 h-10 p-0"
+                      className="rounded-full w-6 h-6 p-0"
                     >
                       {isCameraEnabled ? (
-                        <Camera className="h-4 w-4" />
+                        <Camera className="h-3 w-3" />
                       ) : (
-                        <CameraOff className="h-4 w-4" />
+                        <CameraOff className="h-3 w-3" />
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={stopStream}
+                      variant="destructive"
+                      size="sm"
+                      className="rounded-full w-6 h-6 p-0"
+                    >
+                      <StopCircle className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Compact Control Buttons */}
+              {!isStreaming && (
+                <div className="flex items-center justify-center">
+                  <Button
+                    onClick={startStream}
+                    size="sm"
+                    className="h-12 w-12 rounded-full"
+                  >
+                    <Video className="h-5 w-5" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Conversation History - Priority on Mobile */}
+          <div className="h-[600px]">
+            <GeminiConversationHistory
+              conversation={conversation}
+              currentUserMessage={currentUserMessage}
+              currentAssistantMessage={currentAssistantMessage}
+              currentThinking={currentThinking}
+              onClearConversation={() => setConversation([])}
+              mode="video"
+            />
+          </div>
+
+          {/* Stats Grid on Mobile */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Session Status */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  {isConnected ? (
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  ) : (
+                    <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                  )}
+                  Session Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Badge
+                  variant="secondary"
+                  className={`${isConnected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} border-0 text-xs`}
+                >
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </Badge>
+              </CardContent>
+            </Card>
+
+            {/* Token Usage */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <BarChart3 className="h-3 w-3" />
+                  Token Usage
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-1">
+                <div className="text-sm font-bold">
+                  {tokenCount.toLocaleString()}
+                </div>
+                <Progress value={(tokenCount / 1000000) * 100} className="h-1" />
+              </CardContent>
+            </Card>
+
+            {/* Session Metrics */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <MessageCircle className="h-3 w-3" />
+                  Session Metrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-sm font-bold">{conversation.length}</div>
+                <div className="text-xs text-muted-foreground">Messages</div>
+              </CardContent>
+            </Card>
+
+            {/* Model Info */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <Cpu className="h-3 w-3" />
+                  Model Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-sm font-medium">
+                  {config.model.replace('gemini-', '').replace('-preview', '').replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden lg:grid lg:grid-cols-4 gap-6">
+          {/* Left Side - Controls and Stats */}
+          <div className="lg:col-span-1 space-y-4">
+          {/* Video Controls */}
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Video className="h-4 w-4" />
+                Video Controls
+                {isStreaming && (
+                  <Badge variant="default" className="animate-pulse text-xs">
+                    Live
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Compact Video Display */}
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                  style={{ transform: 'scaleX(-1)' }} // Mirror effect
+                />
+                <canvas
+                  ref={canvasRef}
+                  className="hidden"
+                  width={640}
+                  height={480}
+                />
+
+                {/* Compact overlay controls */}
+                {isStreaming && (
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                    <Button
+                      onClick={toggleMicrophone}
+                      variant={isMicEnabled ? "default" : "destructive"}
+                      size="sm"
+                      className="rounded-full w-6 h-6 p-0"
+                    >
+                      {isMicEnabled ? (
+                        <Mic className="h-3 w-3" />
+                      ) : (
+                        <MicOff className="h-3 w-3" />
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={toggleCamera}
+                      variant={isCameraEnabled ? "default" : "destructive"}
+                      size="sm"
+                      className="rounded-full w-6 h-6 p-0"
+                    >
+                      {isCameraEnabled ? (
+                        <Camera className="h-3 w-3" />
+                      ) : (
+                        <CameraOff className="h-3 w-3" />
                       )}
                     </Button>
                   </div>
                 )}
               </div>
 
-              {/* Main Control Button */}
+              {/* Compact Control Button */}
               <div className="flex items-center justify-center">
                 {!isStreaming ? (
                   <Button
                     onClick={startStream}
-                    size="lg"
-                    className="h-16 px-8"
+                    size="sm"
+                    className="h-8 px-4 text-xs"
                   >
-                    <Video className="h-6 w-6 mr-2" />
-                    Start Video Chat
+                    <Video className="h-3 w-3 mr-1" />
+                    Start
                   </Button>
                 ) : (
                   <Button
                     onClick={stopStream}
                     variant="destructive"
-                    size="lg"
-                    className="h-16 px-8"
+                    size="sm"
+                    className="h-8 px-4 text-xs"
                   >
-                    <StopCircle className="h-6 w-6 mr-2" />
-                    Stop Video Chat
+                    <StopCircle className="h-3 w-3 mr-1" />
+                    Stop
                   </Button>
                 )}
               </div>
 
-              {/* Status Information */}
+              {/* Compact Status */}
               {isStreaming && (
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Video className="h-4 w-4 text-green-500" />
-                      <span className="text-sm text-muted-foreground">
-                        Camera: {isCameraEnabled ? 'On' : 'Off'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mic className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm text-muted-foreground">
-                        Mic: {isMicEnabled ? 'On' : 'Off'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Model: {config.model.replace('gemini-', '').replace('-preview', '')}
+                <div className="text-center space-y-1">
+                  <div className="flex items-center justify-center gap-2 text-xs">
+                    <span className={`${isCameraEnabled ? 'text-green-500' : 'text-red-500'}`}>
+                      Cam: {isCameraEnabled ? 'On' : 'Off'}
+                    </span>
+                    <span className={`${isMicEnabled ? 'text-blue-500' : 'text-red-500'}`}>
+                      Mic: {isMicEnabled ? 'On' : 'Off'}
+                    </span>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Conversation History */}
-          <GeminiConversationHistory 
+          {/* Session Status */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                {isConnected ? (
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                ) : (
+                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                )}
+                Session Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                <Badge
+                  variant="secondary"
+                  className={`${isConnected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} border-0`}
+                >
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </Badge>
+                {sessionId && (
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {sessionId.slice(0, 8)}...
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Token Usage */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Token Usage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-bold">
+                  {tokenCount.toLocaleString()}
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  {((tokenCount / 1000000) * 100).toFixed(1)}%
+                </Badge>
+              </div>
+              <Progress value={(tokenCount / 1000000) * 100} className="h-1.5" />
+              <div className="text-xs text-muted-foreground">
+                Limit: 1,000K
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Session Metrics */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Session Metrics
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-center">
+                  <div className="text-lg font-bold">{conversation.length}</div>
+                  <div className="text-xs text-muted-foreground">Messages</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">
+                    {isConnected ? Math.round(tokenCount / Math.max(conversation.length, 1)) : 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Avg Tokens</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Model Info */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Cpu className="h-4 w-4" />
+                Model Info
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                <div className="font-medium text-sm">
+                  {config.model.replace('gemini-', '').replace('-preview', '').replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Badge variant="secondary" className="text-xs">
+                    Live Audio
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Real-time
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+          {/* Right Side - Expanded Conversation */}
+          <div className="lg:col-span-3 h-full">
+            <GeminiConversationHistory
             conversation={conversation}
             currentUserMessage={currentUserMessage}
             currentAssistantMessage={currentAssistantMessage}
@@ -568,17 +838,7 @@ export function GeminiVideoInterface({ user }: GeminiVideoInterfaceProps) {
             onClearConversation={() => setConversation([])}
             mode="video"
           />
-        </div>
-
-        {/* Session Statistics */}
-        <div className="space-y-6">
-          <GeminiSessionStats
-            tokenCount={tokenCount}
-            sessionId={sessionId}
-            isConnected={isConnected}
-            messageCount={conversation.length}
-            model={config.model}
-          />
+          </div>
         </div>
       </div>
     </div>

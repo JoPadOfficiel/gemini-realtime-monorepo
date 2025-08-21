@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Monitor, StopCircle, Mic, MicOff, Share, Square } from 'lucide-react';
+import { Monitor, StopCircle, Mic, MicOff, Share, Square, BarChart3, MessageCircle, Cpu } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { GeminiQuickActions } from './GeminiQuickActions';
 import { GeminiConversationHistory } from './GeminiConversationHistory';
-import { GeminiSessionStats } from './GeminiSessionStats';
 import { GeminiSettingsPopup } from './GeminiSettingsPopup';
 import { base64ToFloat32Array, float32ToPcm16, GeminiApiService } from '@/lib/gemini-utils';
 
@@ -468,23 +468,184 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
         }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Screen Controls */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Monitor className="h-5 w-5" />
-                Screen Share Controls
+      <div className="space-y-6">
+        {/* Mobile/Tablet Layout */}
+        <div className="lg:hidden space-y-6">
+          {/* Screen Share Controls */}
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                Screen Share
                 {isStreaming && (
-                  <Badge variant="default" className="animate-pulse">
+                  <Badge variant="default" className="animate-pulse text-xs">
                     Live
                   </Badge>
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Screen Display */}
+            <CardContent className="space-y-4">
+              {/* Compact Screen Display */}
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-contain"
+                />
+                <canvas
+                  ref={canvasRef}
+                  className="hidden"
+                  width={640}
+                  height={480}
+                />
+
+                {/* Compact overlay controls */}
+                {isStreaming && (
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                    <Button
+                      onClick={toggleMicrophone}
+                      variant={isMicEnabled ? "default" : "destructive"}
+                      size="sm"
+                      className="rounded-full w-6 h-6 p-0"
+                    >
+                      {isMicEnabled ? (
+                        <Mic className="h-3 w-3" />
+                      ) : (
+                        <MicOff className="h-3 w-3" />
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={stopStream}
+                      variant="destructive"
+                      size="sm"
+                      className="rounded-full w-6 h-6 p-0"
+                    >
+                      <StopCircle className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Compact Control Buttons */}
+              {!isStreaming && (
+                <div className="flex items-center justify-center">
+                  <Button
+                    onClick={startStream}
+                    size="sm"
+                    className="h-12 w-12 rounded-full"
+                  >
+                    <Share className="h-5 w-5" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Conversation History - Priority on Mobile */}
+          <div className="h-[600px]">
+            <GeminiConversationHistory
+              conversation={conversation}
+              currentUserMessage={currentUserMessage}
+              currentAssistantMessage={currentAssistantMessage}
+              currentThinking={currentThinking}
+              onClearConversation={() => setConversation([])}
+              mode="screen"
+            />
+          </div>
+
+          {/* Stats Grid on Mobile */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Session Status */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  {isConnected ? (
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  ) : (
+                    <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                  )}
+                  Session Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Badge
+                  variant="secondary"
+                  className={`${isConnected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} border-0 text-xs`}
+                >
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </Badge>
+              </CardContent>
+            </Card>
+
+            {/* Token Usage */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <BarChart3 className="h-3 w-3" />
+                  Token Usage
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-1">
+                <div className="text-sm font-bold">
+                  {tokenCount.toLocaleString()}
+                </div>
+                <Progress value={(tokenCount / 1000000) * 100} className="h-1" />
+              </CardContent>
+            </Card>
+
+            {/* Session Metrics */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <MessageCircle className="h-3 w-3" />
+                  Session Metrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-sm font-bold">{conversation.length}</div>
+                <div className="text-xs text-muted-foreground">Messages</div>
+              </CardContent>
+            </Card>
+
+            {/* Model Info */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <Cpu className="h-3 w-3" />
+                  Model Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-sm font-medium">
+                  {config.model.replace('gemini-', '').replace('-preview', '').replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden lg:grid lg:grid-cols-4 gap-6">
+          {/* Left Side - Controls and Stats */}
+          <div className="lg:col-span-1 space-y-4">
+          {/* Screen Share Controls */}
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                Screen Share
+                {isStreaming && (
+                  <Badge variant="default" className="animate-pulse text-xs">
+                    Live
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Compact Screen Display */}
               <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                 {isScreenSharing ? (
                   <>
@@ -501,92 +662,186 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                       width={640}
                       height={480}
                     />
-                    
-                    {/* Screen overlay controls */}
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+
+                    {/* Compact overlay controls */}
+                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1">
                       <Button
                         onClick={toggleMicrophone}
                         variant={isMicEnabled ? "default" : "destructive"}
                         size="sm"
-                        className="rounded-full w-10 h-10 p-0"
+                        className="rounded-full w-6 h-6 p-0"
                       >
                         {isMicEnabled ? (
-                          <Mic className="h-4 w-4" />
+                          <Mic className="h-3 w-3" />
                         ) : (
-                          <MicOff className="h-4 w-4" />
+                          <MicOff className="h-3 w-3" />
                         )}
                       </Button>
-                      
-                      <Badge variant="secondary" className="px-3 py-1">
-                        <Share className="h-3 w-3 mr-1" />
-                        Sharing Screen
+
+                      <Badge variant="secondary" className="px-2 py-0.5 text-xs">
+                        <Share className="h-2 w-2 mr-1" />
+                        Sharing
                       </Badge>
                     </div>
                   </>
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                      <Monitor className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="text-lg font-medium mb-2">No Screen Shared</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Start screen sharing to begin your session
+                      <Monitor className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        No screen shared
                       </p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Main Control Button */}
+              {/* Compact Control Button */}
               <div className="flex items-center justify-center">
                 {!isStreaming ? (
                   <Button
                     onClick={startStream}
-                    size="lg"
-                    className="h-16 px-8"
+                    size="sm"
+                    className="h-8 px-4 text-xs"
                   >
-                    <Monitor className="h-6 w-6 mr-2" />
-                    Start Screen Share
+                    <Monitor className="h-3 w-3 mr-1" />
+                    Start
                   </Button>
                 ) : (
                   <Button
                     onClick={stopStream}
                     variant="destructive"
-                    size="lg"
-                    className="h-16 px-8"
+                    size="sm"
+                    className="h-8 px-4 text-xs"
                   >
-                    <Square className="h-6 w-6 mr-2" />
-                    Stop Screen Share
+                    <Square className="h-3 w-3 mr-1" />
+                    Stop
                   </Button>
                 )}
               </div>
 
-              {/* Status Information */}
+              {/* Compact Status */}
               {isStreaming && (
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Monitor className="h-4 w-4 text-purple-500" />
-                      <span className="text-sm text-muted-foreground">
-                        Screen: {isScreenSharing ? 'Sharing' : 'Not Sharing'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mic className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm text-muted-foreground">
-                        Mic: {isMicEnabled ? 'On' : 'Off'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Model: {config.model.replace('gemini-', '').replace('-preview', '')}
+                <div className="text-center space-y-1">
+                  <div className="flex items-center justify-center gap-2 text-xs">
+                    <span className={`${isScreenSharing ? 'text-purple-500' : 'text-red-500'}`}>
+                      Screen: {isScreenSharing ? 'On' : 'Off'}
+                    </span>
+                    <span className={`${isMicEnabled ? 'text-blue-500' : 'text-red-500'}`}>
+                      Mic: {isMicEnabled ? 'On' : 'Off'}
+                    </span>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Conversation History */}
-          <GeminiConversationHistory 
+          {/* Session Status */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                {isConnected ? (
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                ) : (
+                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                )}
+                Session Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                <Badge
+                  variant="secondary"
+                  className={`${isConnected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} border-0`}
+                >
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </Badge>
+                {sessionId && (
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {sessionId.slice(0, 8)}...
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Token Usage */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Token Usage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-bold">
+                  {tokenCount.toLocaleString()}
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  {((tokenCount / 1000000) * 100).toFixed(1)}%
+                </Badge>
+              </div>
+              <Progress value={(tokenCount / 1000000) * 100} className="h-1.5" />
+              <div className="text-xs text-muted-foreground">
+                Limit: 1,000K
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Session Metrics */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Session Metrics
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-center">
+                  <div className="text-lg font-bold">{conversation.length}</div>
+                  <div className="text-xs text-muted-foreground">Messages</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">
+                    {isConnected ? Math.round(tokenCount / Math.max(conversation.length, 1)) : 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Avg Tokens</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Model Info */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Cpu className="h-4 w-4" />
+                Model Info
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                <div className="font-medium text-sm">
+                  {config.model.replace('gemini-', '').replace('-preview', '').replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Badge variant="secondary" className="text-xs">
+                    Live Audio
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Real-time
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+          {/* Right Side - Expanded Conversation */}
+          <div className="lg:col-span-3 h-full">
+            <GeminiConversationHistory
             conversation={conversation}
             currentUserMessage={currentUserMessage}
             currentAssistantMessage={currentAssistantMessage}
@@ -594,17 +849,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             onClearConversation={() => setConversation([])}
             mode="screen"
           />
-        </div>
-
-        {/* Session Statistics */}
-        <div className="space-y-6">
-          <GeminiSessionStats
-            tokenCount={tokenCount}
-            sessionId={sessionId}
-            isConnected={isConnected}
-            messageCount={conversation.length}
-            model={config.model}
-          />
+          </div>
         </div>
       </div>
     </div>

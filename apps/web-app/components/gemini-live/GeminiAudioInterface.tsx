@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, StopCircle, Settings, Volume2, VolumeX, BarChart3, MessageCircle, Cpu, ChevronDown } from 'lucide-react';
+import { Mic, StopCircle, BarChart3, MessageCircle, Cpu } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { base64ToFloat32Array, float32ToPcm16, GeminiApiService } from '@/lib/gemini-utils';
 import { GeminiQuickActions } from './GeminiQuickActions';
 import { GeminiConversationHistory } from './GeminiConversationHistory';
-import { GeminiSessionStats } from './GeminiSessionStats';
 import { GeminiSettingsPopup } from './GeminiSettingsPopup';
 
 interface Config {
@@ -548,90 +547,322 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
         }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Audio Controls */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mic className="h-5 w-5" />
+      <div className="space-y-6">
+        {/* Mobile/Tablet Layout */}
+        <div className="lg:hidden space-y-6">
+          {/* Audio Controls */}
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Mic className="h-4 w-4" />
                 Audio Controls
                 {isStreaming && (
-                  <Badge variant="default" className="animate-pulse">
+                  <Badge variant="default" className="animate-pulse text-xs">
                     Live
                   </Badge>
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Main Control Button */}
+            <CardContent className="space-y-4">
+              {/* Compact Control Button */}
               <div className="flex items-center justify-center">
                 {!isStreaming ? (
                   <Button
                     onClick={startStream}
-                    size="lg"
-                    className="h-20 w-20 rounded-full"
+                    size="sm"
+                    className="h-12 w-12 rounded-full"
                   >
-                    <Mic className="h-8 w-8" />
+                    <Mic className="h-5 w-5" />
                   </Button>
                 ) : (
                   <Button
                     onClick={stopStream}
                     variant="destructive"
-                    size="lg"
-                    className="h-20 w-20 rounded-full"
+                    size="sm"
+                    className="h-12 w-12 rounded-full"
                   >
-                    <StopCircle className="h-8 w-8" />
+                    <StopCircle className="h-5 w-5" />
                   </Button>
                 )}
               </div>
 
-              {/* Audio Level Indicator */}
+              {/* Compact Audio Level */}
               {isStreaming && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Audio Level</span>
-                    <span className="text-xs text-muted-foreground">
-                      {Math.round(audioLevel)} / 255
-                    </span>
+                <div className="space-y-1">
+                  <div className="text-xs text-center text-muted-foreground">
+                    Level: {Math.round(audioLevel)}
                   </div>
-                  <Progress value={(audioLevel / 255) * 100} className="h-2" />
+                  <Progress value={(audioLevel / 255) * 100} className="h-1.5" />
                 </div>
               )}
 
-              {/* Status Information */}
+              {/* Compact Status */}
               {isStreaming && (
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center gap-2">
-                    <Mic className="h-4 w-4 text-blue-500 animate-pulse" />
-                    <span className="text-sm text-muted-foreground">Listening...</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Model: {config.model.replace('gemini-', '').replace('-preview', '')}
+                <div className="text-center space-y-1">
+                  <div className="flex items-center justify-center gap-1">
+                    <Mic className="h-3 w-3 text-blue-500 animate-pulse" />
+                    <span className="text-xs text-muted-foreground">Listening</span>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Conversation History */}
-          <GeminiConversationHistory 
-            conversation={conversation}
-            currentUserMessage={currentUserMessage}
-            currentAssistantMessage={currentAssistantMessage}
-            onClearConversation={() => setConversation([])}
-          />
+          {/* Conversation History - Priority on Mobile */}
+          <div className="h-[600px]">
+            <GeminiConversationHistory
+              conversation={conversation}
+              currentUserMessage={currentUserMessage}
+              currentAssistantMessage={currentAssistantMessage}
+              onClearConversation={() => setConversation([])}
+            />
+          </div>
+
+          {/* Stats Grid on Mobile */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Session Status */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  {isConnected ? (
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  ) : (
+                    <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                  )}
+                  Session Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Badge
+                  variant="secondary"
+                  className={`${isConnected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} border-0 text-xs`}
+                >
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </Badge>
+              </CardContent>
+            </Card>
+
+            {/* Token Usage */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <BarChart3 className="h-3 w-3" />
+                  Token Usage
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-1">
+                <div className="text-sm font-bold">
+                  {tokenCount.toLocaleString()}
+                </div>
+                <Progress value={(tokenCount / 1000000) * 100} className="h-1" />
+              </CardContent>
+            </Card>
+
+            {/* Session Metrics */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <MessageCircle className="h-3 w-3" />
+                  Session Metrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-sm font-bold">{conversation.length}</div>
+                <div className="text-xs text-muted-foreground">Messages</div>
+              </CardContent>
+            </Card>
+
+            {/* Model Info */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <Cpu className="h-3 w-3" />
+                  Model Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="text-sm font-medium">
+                  {config.model.replace('gemini-', '').replace('-preview', '').replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Session Statistics */}
-        <div className="space-y-6">
-          <GeminiSessionStats
-            tokenCount={tokenCount}
-            sessionId={sessionId}
-            isConnected={isConnected}
-            messageCount={conversation.length}
-            model={config.model}
-          />
+        {/* Desktop Layout */}
+        <div className="hidden lg:grid lg:grid-cols-4 gap-6">
+          {/* Left Side - Controls and Stats */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Audio Controls */}
+            <Card className="h-fit">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Mic className="h-4 w-4" />
+                  Audio Controls
+                  {isStreaming && (
+                    <Badge variant="default" className="animate-pulse text-xs">
+                      Live
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Compact Control Button */}
+                <div className="flex items-center justify-center">
+                  {!isStreaming ? (
+                    <Button
+                      onClick={startStream}
+                      size="sm"
+                      className="h-12 w-12 rounded-full"
+                    >
+                      <Mic className="h-5 w-5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={stopStream}
+                      variant="destructive"
+                      size="sm"
+                      className="h-12 w-12 rounded-full"
+                    >
+                      <StopCircle className="h-5 w-5" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Compact Audio Level */}
+                {isStreaming && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-center text-muted-foreground">
+                      Level: {Math.round(audioLevel)}
+                    </div>
+                    <Progress value={(audioLevel / 255) * 100} className="h-1.5" />
+                  </div>
+                )}
+
+                {/* Compact Status */}
+                {isStreaming && (
+                  <div className="text-center space-y-1">
+                    <div className="flex items-center justify-center gap-1">
+                      <Mic className="h-3 w-3 text-blue-500 animate-pulse" />
+                      <span className="text-xs text-muted-foreground">Listening</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Session Status */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  {isConnected ? (
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  ) : (
+                    <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                  )}
+                  Session Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  <Badge
+                    variant="secondary"
+                    className={`${isConnected ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} border-0`}
+                  >
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                  </Badge>
+                  {sessionId && (
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {sessionId.slice(0, 8)}...
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Token Usage */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Token Usage
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold">
+                    {tokenCount.toLocaleString()}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {((tokenCount / 1000000) * 100).toFixed(1)}%
+                  </Badge>
+                </div>
+                <Progress value={(tokenCount / 1000000) * 100} className="h-1.5" />
+                <div className="text-xs text-muted-foreground">
+                  Limit: 1,000K
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Session Metrics */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Session Metrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="text-center">
+                    <div className="text-lg font-bold">{conversation.length}</div>
+                    <div className="text-xs text-muted-foreground">Messages</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold">
+                      {isConnected ? Math.round(tokenCount / Math.max(conversation.length, 1)) : 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Avg Tokens</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Model Info */}
+            <Card className="h-fit">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Cpu className="h-4 w-4" />
+                  Model Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  <div className="font-medium text-sm">
+                    {config.model.replace('gemini-', '').replace('-preview', '').replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  </div>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <Badge variant="secondary" className="text-xs">
+                      Live Audio
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      Real-time
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Side - Expanded Conversation */}
+          <div className="lg:col-span-3 h-full">
+            <GeminiConversationHistory
+              conversation={conversation}
+              currentUserMessage={currentUserMessage}
+              currentAssistantMessage={currentAssistantMessage}
+              onClearConversation={() => setConversation([])}
+            />
+          </div>
         </div>
       </div>
     </div>
