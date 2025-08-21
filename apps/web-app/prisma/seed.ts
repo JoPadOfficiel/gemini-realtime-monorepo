@@ -2,32 +2,30 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Prix officiels Gemini 2.5 Flash Native Audio (en USD par million de tokens)
-// SEULEMENT LES MODÈLES 2.5 UTILISÉS DANS LE PROJET
 const GEMINI_PRICING = [
   {
     modelId: 'gemini-live-2.5-flash-preview',
     modelName: 'Gemini Live 2.5 Flash Preview',
-    textInputPricePerMillion: 0.50,   // Text input
-    textOutputPricePerMillion: 2.00,  // Text output
-    audioInputPricePerMillion: 3.00,  // Audio/video input
-    audioOutputPricePerMillion: 12.00, // Audio output
+    textInputPricePerMillion: 0.50,
+    textOutputPricePerMillion: 2.00,
+    audioInputPricePerMillion: 3.00,
+    audioOutputPricePerMillion: 12.00,
   },
   {
     modelId: 'gemini-2.5-flash-preview-native-audio-dialog',
     modelName: 'Gemini 2.5 Flash Native Audio Dialog',
-    textInputPricePerMillion: 0.50,   // Text input
-    textOutputPricePerMillion: 2.00,  // Text output
-    audioInputPricePerMillion: 3.00,  // Audio/video input
-    audioOutputPricePerMillion: 12.00, // Audio output
+    textInputPricePerMillion: 0.50,
+    textOutputPricePerMillion: 2.00,
+    audioInputPricePerMillion: 3.00,
+    audioOutputPricePerMillion: 12.00,
   },
   {
     modelId: 'gemini-2.5-flash-exp-native-audio-thinking-dialog',
     modelName: 'Gemini 2.5 Flash Native Audio Thinking',
-    textInputPricePerMillion: 0.50,   // Text input
-    textOutputPricePerMillion: 2.00,  // Text output (including thinking tokens)
-    audioInputPricePerMillion: 3.00,  // Audio/video input
-    audioOutputPricePerMillion: 12.00, // Audio output
+    textInputPricePerMillion: 0.50,
+    textOutputPricePerMillion: 2.00,
+    audioInputPricePerMillion: 3.00,
+    audioOutputPricePerMillion: 12.00,
   },
 ];
 
