@@ -15,11 +15,39 @@ export async function updateUserRole(userId: string, data: FormData) {
   try {
     const session = await auth();
 
-    if (!session?.user || session?.user.id !== userId) {
-      throw new Error("Unauthorized");
+    if (!session?.user) {
+      throw new Error("Unauthorized - No session");
+    }
+
+    // 🔒 SECURITY: Prevent users from changing their own role
+    if (session.user.id === userId) {
+      throw new Error("Forbidden - Cannot modify your own role");
+    }
+
+    // 🔒 SECURITY: Only admins can change user roles
+    if (session.user.role !== "ADMIN") {
+      throw new Error("Forbidden - Admin privileges required");
     }
 
     const { role } = userRoleSchema.parse(data);
+
+    // 🔒 SECURITY: Prevent removing the last admin
+    if (role === "USER") {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true }
+      });
+
+      if (targetUser?.role === "ADMIN") {
+        const adminCount = await prisma.user.count({
+          where: { role: "ADMIN" }
+        });
+
+        if (adminCount <= 1) {
+          throw new Error("Forbidden - Cannot remove the last admin");
+        }
+      }
+    }
 
     // Update the user role.
     await prisma.user.update({
@@ -32,9 +60,13 @@ export async function updateUserRole(userId: string, data: FormData) {
     });
 
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/admin");
     return { status: "success" };
   } catch (error) {
-    // console.log(error)
-    return { status: "error" };
+    console.error("Role update error:", error);
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unknown error"
+    };
   }
 }
