@@ -19,19 +19,19 @@ export async function updateUserRole(userId: string, data: FormData) {
       throw new Error("Unauthorized - No session");
     }
 
-    // 🔒 SECURITY: Prevent users from changing their own role
+    // SECURITY: Prevent users from changing their own role
     if (session.user.id === userId) {
       throw new Error("Forbidden - Cannot modify your own role");
     }
 
-    // 🔒 SECURITY: Only admins can change user roles
+    // SECURITY: Only admins can change user roles
     if (session.user.role !== "ADMIN") {
       throw new Error("Forbidden - Admin privileges required");
     }
 
     const { role } = userRoleSchema.parse(data);
 
-    // 🔒 SECURITY: Prevent removing the last admin
+    // SECURITY: Prevent removing the last admin
     if (role === "USER") {
       const targetUser = await prisma.user.findUnique({
         where: { id: userId },
