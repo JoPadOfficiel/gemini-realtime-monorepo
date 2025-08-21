@@ -32,6 +32,7 @@ import {
 import { Trash2, UserX, UserCheck, Eye, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import UserDetailsModal from './user-details-modal';
+import { UserRoleManager } from './user-role-manager';
 
 const truncateEmail = (email: string, maxLength: number = 20) => {
   if (email.length <= maxLength) return email;
@@ -203,9 +204,14 @@ export default function UsersList() {
                   </TableCell>
                   {/* Role column - visible from MD up */}
                   <TableCell className="hidden md:table-cell">
-                    <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>
-                      {user.role}
-                    </Badge>
+                    <UserRoleManager
+                      userId={user.id}
+                      currentRole={user.role}
+                      userName={user.name || 'Unknown'}
+                      userEmail={user.email || 'No email'}
+                      onRoleChanged={fetchUsers}
+                      disabled={actionLoading === user.id}
+                    />
                   </TableCell>
 {/* Tokens Used column - visible from MD up */}
                   <TableCell className="hidden md:table-cell">
