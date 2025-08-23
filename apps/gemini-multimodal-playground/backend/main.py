@@ -1,3 +1,7 @@
+# ============================================================================
+# GEMINI LIVE BACKEND API
+# ============================================================================
+
 from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ConfigDict
@@ -11,93 +15,44 @@ from dotenv import load_dotenv
 from websockets import connect
 from typing import Dict, List, Optional
 from simple_memory import get_memory_manager
-from async_memory import async_memory_queue, TaskStatus
+from async_memory import async_memory_queue
 from collections import defaultdict
 
 load_dotenv()
 
-# Tags metadata for better API organization
+# ============================================================================
+# API CONFIGURATION
+# ============================================================================
+
 tags_metadata = [
-    {
-        "name": "Health",
-        "description": "Health check and system status endpoints",
-    },
-    {
-        "name": "Models",
-        "description": "Model information and rate limits management",
-    },
-    {
-        "name": "Memory",
-        "description": "Conversation memory management operations. Store, query, and manage conversation history with long-term memory capabilities.",
-    },
-    {
-        "name": "Async",
-        "description": "Asynchronous operations for improved performance. Non-blocking memory operations that return immediately with task tracking.",
-    },
-    {
-        "name": "Tokens",
-        "description": "Token usage tracking and monitoring for different AI models",
-    },
-    {
-        "name": "Sessions",
-        "description": "WebSocket session management and monitoring. Track active connections, session states, and connection health.",
-    },
+    {"name": "Health", "description": "Health check and system status endpoints"},
+    {"name": "Models", "description": "Model information and rate limits management"},
+    {"name": "Memory", "description": "Conversation memory management operations"},
+    {"name": "Async", "description": "Asynchronous operations for improved performance"},
+    {"name": "Tokens", "description": "Token usage tracking and monitoring"},
+    {"name": "Sessions", "description": "WebSocket session management and monitoring"},
 ]
 
 app = FastAPI(
     title="Gemini Live Backend API",
-    description="""
-    ## Backend API for Gemini Live Multimodal Playground
-
-    This API provides comprehensive backend services for real-time multimodal AI conversations using Google's Gemini Live API.
-
-    ### Key Features
-
-    * **Real-time WebSocket Communication**: Bidirectional audio, text, and image streaming
-    * **Long-term Memory Management**: Persistent conversation memory with intelligent querying
-    * **Session Management**: Robust session handling with resumption capabilities
-    * **Token Usage Tracking**: Monitor and track API usage across different models
-    * **Asynchronous Operations**: Non-blocking memory operations for optimal performance
-    * **Multi-model Support**: Support for various Gemini models with automatic rate limit detection
-
-    ### Architecture
-
-    - **WebSocket Endpoint**: `/ws/{client_id}` for real-time communication
-    - **REST APIs**: Comprehensive REST endpoints for memory, tokens, and session management
-    - **Memory System**: PostgreSQL-based persistent memory with Mem0 integration
-    - **Performance Optimized**: Async operations and connection pooling
-
-    ### Authentication
-
-    Requires valid `GEMINI_API_KEY` environment variable for Google AI Studio access.
-    """,
+    description="Backend API for Gemini Live Multimodal Playground with real-time WebSocket communication, memory management, and session handling.",
     version="1.2.0",
-    terms_of_service="https://developers.generativeai.google/terms",
-    contact={
-        "name": "Gemini Live Backend API Support",
-        "url": "https://github.com/jopadofficiel/gemini-realtime-monorepo",
-        "email": "support@example.com",
-    },
-    license_info={
-        "name": "MIT License",
-        "url": "https://opensource.org/licenses/MIT",
-    },
     openapi_tags=tags_metadata,
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json",
 )
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_origins=["*"], # change production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Memory query tool definition for Gemini
+# ============================================================================
+# CONSTANTS AND CONFIGURATION
+# ============================================================================
 MEMORY_QUERY_TOOL = {
     "function_declarations": [
         {
@@ -117,7 +72,6 @@ MEMORY_QUERY_TOOL = {
     ]
 }
 
-# Session management storage
 session_handles = {}
 
 def save_session_handle(session_id: str, handle: str):
@@ -128,14 +82,15 @@ def get_session_handle(session_id: str) -> str:
     """Get session handle for resumption"""
     return session_handles.get(session_id, None)
 
-
-
+# ============================================================================
+# GEMINI CONNECTION CLASS
+# ============================================================================
 
 class GeminiConnection:
     def __init__(self, model="gemini-live-2.5-flash-preview", session_id=None):
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.model = model
-        self.session_id = session_id or "default_session"  # Add session_id for session management
+        self.session_id = session_id or "default_session"
         self.uri = (
             "wss://generativelanguage.googleapis.com/ws/"
             "google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent"
@@ -143,16 +98,13 @@ class GeminiConnection:
         )
         self.ws = None
         self.config = None
-        self.accumulated_pcm_data = []  # Pour accumuler les fragments PCM de Gemini
-        self.accumulated_user_pcm_data = []  # Pour accumuler les fragments PCM utilisateur
-        # Système d'accumulation des transcriptions comme GitHub
-        self.accumulated_input_transcription = []  # Fragments de transcription utilisateur
-        self.accumulated_output_transcription = []  # Fragments de transcription Gemini
+        self.accumulated_pcm_data = []
+        self.accumulated_user_pcm_data = []
+        self.accumulated_input_transcription = []
+        self.accumulated_output_transcription = []
         self.token_count = 0
-        # Memory management flags
-        self.is_conversation_interrupted = False  # Track if current conversation was interrupted
+        self.is_conversation_interrupted = False
         self.session_start_time = None
-        # Memory manager will be initialized when needed
         self.memory_manager = None
 
     def get_model_limits(self):
@@ -293,10 +245,8 @@ class GeminiConnection:
 
     async def send_audio(self, audio_data: str):
         """Send audio data to Gemini and accumulate for user transcription"""
-        # Accumulate user audio data for transcription (same system as GitHub)
         self.accumulated_user_pcm_data.append(audio_data)
 
-        # Send audio data (VAD automatique gère l'interruption)
         realtime_input_msg = {
             "realtime_input": {
                 "media_chunks": [
@@ -310,14 +260,13 @@ class GeminiConnection:
         await self.ws.send(json.dumps(realtime_input_msg))
 
     async def send_audio_stream_end(self):
-        """Send audio stream end signal for VAD when audio is paused > 1 second"""
+        """Send audio stream end signal for VAD"""
         realtime_input_msg = {
             "realtime_input": {
                 "audio_stream_end": True
             }
         }
         await self.ws.send(json.dumps(realtime_input_msg))
-        print("Sent audio stream end signal")
 
     async def receive(self):
         """Receive message from Gemini"""
@@ -357,14 +306,16 @@ class GeminiConnection:
         }
         await self.ws.send(json.dumps(text_message))
 
-# Store active connections and session states
+# ============================================================================
+# GLOBAL STATE MANAGEMENT
+# ============================================================================
+
 connections: Dict[str, GeminiConnection] = {}
 
-# Session state tracking (persists even when WebSocket fails)
 @dataclass
 class SessionState:
     session_id: str
-    status: str  # "active", "error", "quota_exceeded", "disconnected"
+    status: str
     error_message: Optional[str] = None
     token_count: int = 0
     model: str = "gemini-2.0-flash-exp"
@@ -372,14 +323,10 @@ class SessionState:
     last_activity: datetime = field(default_factory=datetime.now)
 
 session_states: Dict[str, SessionState] = {}
-
-# Global statistics storage
 token_usage_history: List[Dict] = []
 session_history: List[Dict] = []
 daily_stats = defaultdict(lambda: {"tokens": 0, "sessions": 0, "messages": 0})
 recent_activities: List[Dict] = []
-
-# Global configuration storage
 available_models: List[Dict] = [
     {
         "id": "gemini-live-2.5-flash-preview",
@@ -409,10 +356,12 @@ available_models: List[Dict] = [
     }
 ]
 
-user_model_access: Dict[str, List[Dict]] = {}  # user_id -> list of model access configs
-user_settings: Dict[str, Dict] = {}  # user_id -> user settings
+user_model_access: Dict[str, List[Dict]] = {}
+user_settings: Dict[str, Dict] = {}
 
-# Pydantic models for API requests/responses
+# ============================================================================
+# Mem0 Pydantic MODELS
+# ============================================================================
 class MemoryQuery(BaseModel):
     """Query model for searching conversation memory"""
 
@@ -608,6 +557,10 @@ class UserSettings(BaseModel):
     enable_vad: bool = Field(True, description="Enable voice activity detection")
     enable_google_search: bool = Field(True, description="Enable Google search integration")
 
+# ============================================================================
+# WEBSOCKET ENDPOINT
+# ============================================================================
+
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
@@ -725,21 +678,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     msg = await gemini.receive()
                     response = json.loads(msg)
 
-                    # Debug: Print all response keys for token debugging
-                    print(f"🔍 DEBUG - Gemini response keys: {list(response.keys())}")
-
                     # Track token usage if available
                     if "usageMetadata" in response:
                         usage = response["usageMetadata"]
-                        print(f"🔍 DEBUG - Usage metadata found: {usage}")
                         if "totalTokenCount" in usage:
                             gemini.token_count = usage["totalTokenCount"]
-                            print(f"📊 Token count updated: {gemini.token_count}")
-                            # Update session state as well
                             if client_id in session_states:
                                 session_states[client_id].token_count = gemini.token_count
-                                print(f"📊 Session state token count updated: {session_states[client_id].token_count}")
-                            # Send token update to client
+
                             await websocket.send_text(json.dumps({
                                 "type": "token_usage",
                                 "data": {
@@ -749,25 +695,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                 }
                             }))
                     else:
-                        # Check if there are other token-related fields
-                        token_related_keys = [k for k in response.keys() if 'usage' in k.lower() or 'token' in k.lower() or 'metadata' in k.lower()]
-                        if token_related_keys:
-                            print(f"🔍 DEBUG - Alternative usage fields found: {token_related_keys}")
-                            for key in token_related_keys:
-                                print(f"🔍 DEBUG - {key}: {response[key]}")
-
                         # Manual token counting fallback
                         if "candidates" in response:
                             for candidate in response["candidates"]:
                                 if "content" in candidate and "parts" in candidate["content"]:
                                     for part in candidate["content"]["parts"]:
                                         if "text" in part:
-                                            # Rough token estimation: ~4 chars per token
                                             estimated_tokens = len(part["text"]) // 4
                                             gemini.token_count += estimated_tokens
-                                            print(f"📊 Manual token estimation: +{estimated_tokens} tokens (total: {gemini.token_count})")
-
-                                            # Update session state
                                             if client_id in session_states:
                                                 session_states[client_id].token_count = gemini.token_count
 
@@ -918,23 +853,18 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                 # Reset flag for next conversation
                                 gemini.is_conversation_interrupted = False
                             else:
-                                # ONLY save complete, uninterrupted conversations to memory
+                                # Save complete, uninterrupted conversations to memory
                                 try:
-                                    # Get transcriptions from accumulated data BEFORE they are cleared
                                     user_text = None
                                     assistant_text = None
 
-                                    # Get user message from accumulated input transcription
                                     if gemini.accumulated_input_transcription:
                                         user_text = "".join(gemini.accumulated_input_transcription).strip()
 
-                                    # Get assistant message from accumulated output transcription
                                     if gemini.accumulated_output_transcription:
                                         assistant_text = "".join(gemini.accumulated_output_transcription).strip()
 
-                                    # Add to memory if we have both parts (following reference approach)
                                     if user_text and assistant_text and gemini.memory_manager:
-                                        # Skip very short or invalid messages
                                         if (len(user_text) > 3 and len(assistant_text) > 3 and
                                             user_text not in [".", " .", "  ."] and
                                             assistant_text not in [".", " .", "  ."]):
@@ -944,77 +874,55 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                                 {"role": "assistant", "content": assistant_text}
                                             ]
 
-                                            print(f"💾 Saving complete conversation - User: {user_text[:50]}... Assistant: {assistant_text[:50]}...")
-                                            print(f"🔍 DEBUG - Message lengths: User={len(user_text)}, Assistant={len(assistant_text)}")
-                                            print(f"🔍 DEBUG - Session ID: {gemini.session_id}")
-                                            print(f"🔍 DEBUG - Full messages: {json.dumps(messages, indent=2, ensure_ascii=False)}")
-
-                                            # Use new async memory queue (non-blocking, performance optimized)
                                             async def save_complete_conversation():
                                                 try:
-                                                    # Initialize async queue if needed
                                                     if not async_memory_queue.mem0_client:
                                                         await async_memory_queue.initialize(gemini.memory_manager)
 
-                                                    # Queue memory save (returns immediately, no UI blocking)
                                                     task_id = await async_memory_queue.queue_memory_save(
                                                         gemini.session_id,
                                                         messages
                                                     )
-                                                    print(f"✅ Complete conversation queued for memory save (task: {task_id[:8]}...)")
+                                                    print(f"✅ Conversation queued for memory save (task: {task_id[:8]}...)")
                                                 except Exception as e:
-                                                    print(f"Error queuing async complete conversation save: {e}")
-                                                    # Fallback to synchronous save if async fails
+                                                    print(f"Error queuing conversation save: {e}")
                                                     try:
-                                                        memory_id = gemini.memory_manager.add_to_memory(messages, gemini.session_id)
-                                                        print(f"✅ Fallback: Complete conversation saved synchronously with ID: {memory_id}")
+                                                        gemini.memory_manager.add_to_memory(messages, gemini.session_id)
+                                                        print(f"✅ Fallback: Conversation saved synchronously")
                                                     except Exception as fallback_error:
-                                                        print(f"❌ Both async and sync memory save failed: {fallback_error}")
+                                                        print(f"❌ Memory save failed: {fallback_error}")
 
-                                            # Fire and forget - completely non-blocking
                                             asyncio.create_task(save_complete_conversation())
-                                        else:
-                                            print(f"Skipping memory save - messages too short or invalid (user: {len(user_text) if user_text else 0}, assistant: {len(assistant_text) if assistant_text else 0})")
-                                    else:
-                                        print(f"Skipping memory save - missing data (user: {'✓' if user_text else '✗'}, assistant: {'✓' if assistant_text else '✗'}, manager: {'✓' if gemini.memory_manager else '✗'})")
 
                                 except Exception as e:
                                     print(f"Error saving complete conversation to memory: {e}")
                                     import traceback
                                     traceback.print_exc()
 
-                            # SECOND: Send accumulated INPUT transcription (user message) - API officielle + GitHub system
-                            # Only if not already sent during interruption
+                            # Send accumulated input transcription (user message)
                             if gemini.accumulated_input_transcription:
                                 complete_input_transcription = "".join(gemini.accumulated_input_transcription)
-                                # Don't send if it's just a point (interruption artifact)
                                 if complete_input_transcription.strip() not in [".", " .", "  ."]:
-                                    print(f"Complete input transcription: {complete_input_transcription}")
                                     await websocket.send_json({
                                         "type": "user_message",
                                         "data": complete_input_transcription
                                     })
-                                else:
-                                    print(f"Skipping interruption artifact: '{complete_input_transcription}'")
                                 gemini.accumulated_input_transcription = []
 
-                            # THIRD: Send accumulated OUTPUT transcription (assistant message) - API officielle + GitHub system
+                            # Send accumulated output transcription (assistant message)
                             if gemini.accumulated_output_transcription:
                                 complete_output_transcription = "".join(gemini.accumulated_output_transcription)
-                                print(f"Complete output transcription: {complete_output_transcription}")
                                 await websocket.send_json({
                                     "type": "assistant_message",
                                     "data": complete_output_transcription
                                 })
                                 gemini.accumulated_output_transcription = []
 
-                            # Clear accumulated PCM data (not needed for transcription anymore)
+                            # Clear accumulated PCM data
                             if gemini.accumulated_user_pcm_data:
-                                print(f"Clearing user PCM data: {len(gemini.accumulated_user_pcm_data)} fragments")
                                 gemini.accumulated_user_pcm_data = []
 
                             if gemini.accumulated_pcm_data:
-                                print(f"Clearing assistant PCM data: {len(gemini.accumulated_pcm_data)} fragments")
                                 gemini.accumulated_pcm_data = []
 
 
@@ -1094,7 +1002,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             try:
                 await connections[client_id].close()
             except Exception as e:
-                print(f"🔍 DEBUG - Error closing connection: {e}")
+                print(f"Error closing connection: {e}")
             finally:
                 del connections[client_id]
 
@@ -1102,7 +1010,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         if client_id in session_states:
             if session_states[client_id].status == "active":
                 session_states[client_id].status = "disconnected"
-                print(f"🔍 DEBUG - Session {client_id} marked as disconnected")
+
+# ============================================================================
+# REST API ENDPOINTS
+# ============================================================================
 
 @app.get("/health", tags=["Health"])
 async def health():
@@ -1173,7 +1084,7 @@ async def add_memory_api(memory_data: MemoryAdd):
 async def clear_session_memory(session_id: str):
     """Clear all memories for a specific session"""
     try:
-        memory_manager = await get_memory_manager()
+        await get_memory_manager()
         # Note: This would need to be implemented in the memory manager
         return MemoryResponse(
             success=True,
@@ -1304,7 +1215,7 @@ async def get_token_usage(session_id: str):
 @app.get("/api/sessions/stats", response_model=SessionStats, tags=["Sessions"])
 async def get_session_stats():
     """Get session statistics for dashboard"""
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
     now = datetime.now()
     today = now.date()
