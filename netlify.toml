@@ -1,6 +1,6 @@
 [build]
   # Build command - create workspace, install dependencies and build web-app with pnpm
-  command = "cat > pnpm-workspace.yaml << 'EOF'\npackages:\n  - \"apps/*\"\n  - \"packages/*\"\nEOF\nrm -f apps/web-app/pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm --filter web-app run build"
+  command = "cat > pnpm-workspace.yaml << 'EOF'\npackages:\n  - \"apps/*\"\n  - \"packages/*\"\nEOF\nrm -f apps/web-app/pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm --filter saas-starter run build"
 
   # Publish directory for the web app
   publish = "apps/web-app/.next"
