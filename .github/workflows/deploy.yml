@@ -55,12 +55,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_PUBLIC_IP }} >> ~/.ssh/known_hosts
 
       - name: Deploy to VPS
         run: |
-          sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_PUBLIC_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_PUBLIC_IP }} << 'EOF'
             echo "Starting deployment..."
 
             # Update system packages
@@ -134,29 +138,29 @@ jobs:
             echo "WEBSOCKET_PORT=${{ secrets.WEBSOCKET_PORT }}" >> .env
             echo "DEBUG=${{ secrets.DEBUG }}" >> .env
             echo "HOST=${{ secrets.HOST }}" >> .env
-            echo "PORT=3001" >> .env
+            echo "PORT=8000" >> .env
             echo "CORS_ORIGINS=https://gemini-live.netlify.app" >> .env
 
-            # Kill existing process on port 3001
-            echo "Stopping existing backend service on port 3001..."
-            pkill -f "python.*main.py.*3001" || true
-            lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+            # Kill existing process on port 8000
+            echo "Stopping existing backend service on port 8000..."
+            pkill -f "python.*main.py" || true
+            lsof -ti:8000 | xargs kill -9 2>/dev/null || true
             sleep 3
 
-            # Start the backend in background on port 3001
-            echo "Starting backend service on port 3001..."
-            nohup python3 main.py > /tmp/gemini-backend-3001.log 2>&1 &
+            # Start the backend in background on port 8000
+            echo "Starting backend service on port 8000..."
+            nohup python3 main.py > /tmp/gemini-backend-8000.log 2>&1 &
 
             # Wait a moment for the process to start
             sleep 5
 
             # Verify the process is running
             if pgrep -f "python.*main.py" > /dev/null; then
-              echo "Backend service started successfully on port 3001"
+              echo "Backend service started successfully on port 8000"
             else
               echo "ERROR: Backend service failed to start"
               echo "Last 20 lines of log:"
-              tail -20 /tmp/gemini-backend-3001.log
+              tail -20 /tmp/gemini-backend-8000.log
               exit 1
             fi
 
@@ -167,5 +171,5 @@ jobs:
         run: |
           echo "Waiting for backend to start..."
           sleep 15
-          echo "Testing backend health on port 3001..."
-          curl -f http://${{ secrets.SERVER_PUBLIC_IP }}:3001/health || echo "Health check failed, but deployment completed"
+          echo "Testing backend health on port 8000..."
+          curl -f http://${{ secrets.SERVER_PUBLIC_IP }}:8000/health || echo "Health check failed, but deployment completed"
