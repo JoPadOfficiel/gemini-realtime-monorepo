@@ -20,6 +20,7 @@
     "build:analyze": "ANALYZE=true next build",
     "build:info": "echo '📦 Next.js 15 Build Options:' && echo '  • pnpm run build        → Production build (Webpack - Recommended)' && echo '  • pnpm run build:turbo  → Turbopack build (Experimental - Faster)' && echo '  • pnpm run dev          → Development with Turbopack' && echo '  • pnpm run dev:webpack  → Development with Webpack' && echo '  • pnpm run preview      → Build and preview locally' && echo '  • pnpm run clean        → Clean build artifacts'",
     "postinstall": "prisma generate",
+    "vercel-build": "prisma db push && next build",
     "email": "email dev --dir emails --port 3333",
     "db:push": "dotenv -e .env.local -- npx prisma db push",
     "db:migrate": "dotenv -e .env.local -- npx prisma migrate dev",
