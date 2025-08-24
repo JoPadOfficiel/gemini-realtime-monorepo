@@ -104,7 +104,7 @@ function DeleteAccountModal({
         </div>
 
         <Button
-          variant={deleting ? "disable" : "destructive"}
+          variant={deleting ? "secondary" : "destructive"}
           disabled={deleting}
         >
           Confirm delete account

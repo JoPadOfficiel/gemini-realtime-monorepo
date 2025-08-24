@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -60,16 +60,11 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Load user settings on component mount
-  useEffect(() => {
-    loadUserSettings();
-  }, [userId]);
-
-  const loadUserSettings = async () => {
+  const loadUserSettings = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8000/api/users/${userId}/settings`);
-      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/users/${userId}/settings`);
+
       if (response.ok) {
         const data = await response.json();
         setSettings(data);
@@ -84,7 +79,12 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Load user settings on component mount
+  useEffect(() => {
+    loadUserSettings();
+  }, [userId, loadUserSettings]);
 
   const saveUserSettings = async () => {
     try {
@@ -92,7 +92,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
       setError(null);
       setSuccess(null);
 
-      const response = await fetch(`http://localhost:8000/api/users/${userId}/settings`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/users/${userId}/settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Choose the voice for Gemini's audio responses
+            Choose the voice for Gemini&apos;s audio responses
           </p>
         </div>
 
