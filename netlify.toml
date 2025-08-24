@@ -1,6 +1,6 @@
 [build]
-  # Build command - restore workspace, install dependencies and build web-app with pnpm
-  command = "mv pnpm-workspace.yaml.bak pnpm-workspace.yaml && cd apps/web-app && rm -f pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm run build"
+  # Build command - create workspace, install dependencies and build web-app with pnpm
+  command = "echo 'packages:\n  - \"apps/*\"\n  - \"packages/*\"' > pnpm-workspace.yaml && cd apps/web-app && rm -f pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm run build"
 
   # Publish directory for the web app
   publish = "apps/web-app/.next"
