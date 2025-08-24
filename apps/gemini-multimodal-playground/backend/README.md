@@ -11,6 +11,10 @@ FastAPI backend for real-time multimodal AI conversations using Google's Gemini 
 - Asynchronous operations for optimal performance
 - Automatic OpenAPI documentation generation
 
+## Production Deployment
+
+Pour le déploiement en production avec HTTPS, voir [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ## Quick Start
 
 ### 1. Install Dependencies
