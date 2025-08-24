@@ -18,38 +18,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9.0.0
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apps/web-app/package-lock.json'
 
       - name: Install dependencies
         run: |
           cd apps/web-app
-          pnpm install
+          npm install
 
       - name: Build web app
         run: |
           cd apps/web-app
-          pnpm run build
-        env:
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GITHUB_OAUTH_TOKEN }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
-          NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PLAN_ID }}
-          NEXT_PUBLIC_STRIPE_PRO_YEARLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PLAN_ID }}
-          NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PLAN_ID }}
-          NEXT_PUBLIC_STRIPE_BUSINESS_YEARLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_BUSINESS_YEARLY_PLAN_ID }}
+          npm run build
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
@@ -74,43 +55,116 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_PUBLIC_IP }} << 'EOF'
             echo "Starting deployment..."
 
-            # Navigate to deployment directory
-            cd ${{ secrets.VPS_DEPLOY_PATH }}
+            # Update system packages
+            echo "Updating system packages..."
+            sudo apt update
 
-            # Pull latest changes
-            echo "Pulling latest code..."
-            git pull origin main
+            # Install Python 3 and pip if not already installed
+            echo "Ensuring Python 3 and pip are installed..."
+            sudo apt install -y python3 python3-pip python3-venv
+
+            # Install system dependencies for Python packages
+            echo "Installing system dependencies..."
+            sudo apt install -y build-essential libssl-dev libffi-dev python3-dev portaudio19-dev libasound2-dev
+
+            # Verify Python installation
+            echo "Verifying Python installation..."
+            python3 --version
+            pip3 --version
+
+            # Set deployment directory
+            DEPLOY_DIR="/root/gemini-backend"
+
+            # Create deployment directory if it doesn't exist
+            mkdir -p $DEPLOY_DIR
+            cd $DEPLOY_DIR
+
+            # Clone or update only the backend directory using sparse-checkout
+            if [ ! -d ".git" ]; then
+              echo "Cloning repository with sparse-checkout for backend only..."
+              git clone --filter=blob:none --sparse https://${{ secrets.LOGIN_TOKEN }}@github.com/JoPadOfficiel/gemini-realtime-monorepo.git .
+              git sparse-checkout set apps/gemini-multimodal-playground/backend
+            else
+              echo "Updating existing repository..."
+              git pull origin main
+            fi
 
             # Navigate to backend directory
             cd apps/gemini-multimodal-playground/backend
 
-            # Install/update Python dependencies
+            # Verify requirements.txt exists
+            if [ ! -f "requirements.txt" ]; then
+              echo "ERROR: requirements.txt not found!"
+              exit 1
+            fi
+
+            # Install/update Python dependencies with error handling
             echo "Installing Python dependencies..."
-            pip3 install -r requirements.txt
+            if ! pip3 install -r requirements.txt; then
+              echo "ERROR: Failed to install Python dependencies!"
+              exit 1
+            fi
 
-            # Kill existing process (simple approach)
-            echo "Restarting backend service..."
-            pkill -f "python.*main.py" || true
+            # Verify main.py exists
+            if [ ! -f "main.py" ]; then
+              echo "ERROR: main.py not found!"
+              exit 1
+            fi
 
-            # Start the backend in background
-            nohup python3 main.py > /tmp/gemini-backend.log 2>&1 &
+            # Test Python syntax
+            echo "Verifying Python syntax..."
+            if ! python3 -m py_compile main.py; then
+              echo "ERROR: Python syntax error in main.py!"
+              exit 1
+            fi
 
-            echo "Backend deployment completed"
+            # Create .env file with production configuration
+            echo "Creating .env file..."
+            echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+            echo "MEM0_API_KEY=${{ secrets.MEM0_API_KEY }}" >> .env
+            echo "WEBSOCKET_PORT=${{ secrets.WEBSOCKET_PORT }}" >> .env
+            echo "DEBUG=${{ secrets.DEBUG }}" >> .env
+            echo "HOST=${{ secrets.HOST }}" >> .env
+            echo "PORT=3001" >> .env
+            echo "CORS_ORIGINS=https://gemini-live.netlify.app" >> .env
+
+            # Kill existing process on port 3001
+            echo "Stopping existing backend service on port 3001..."
+            pkill -f "python.*main.py.*3001" || true
+            lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+            sleep 3
+
+            # Start the backend in background on port 3001
+            echo "Starting backend service on port 3001..."
+            nohup python3 main.py > /tmp/gemini-backend-3001.log 2>&1 &
+
+            # Wait a moment for the process to start
+            sleep 5
+
+            # Verify the process is running
+            if pgrep -f "python.*main.py" > /dev/null; then
+              echo "Backend service started successfully on port 3001"
+            else
+              echo "ERROR: Backend service failed to start"
+              echo "Last 20 lines of log:"
+              tail -20 /tmp/gemini-backend-3001.log
+              exit 1
+            fi
+
+            echo "Backend deployment completed successfully"
           EOF
 
       - name: Health Check
         run: |
           echo "Waiting for backend to start..."
           sleep 15
-          echo "Testing backend health..."
-          curl -f ${{ secrets.VPS_BACKEND_URL }}/health || echo "Health check failed, but deployment completed"
+          echo "Testing backend health on port 3001..."
+          curl -f http://${{ secrets.SERVER_PUBLIC_IP }}:3001/health || echo "Health check failed, but deployment completed"
