@@ -81,7 +81,7 @@ jobs:
             pip3 --version
 
             # Set deployment directory
-            DEPLOY_DIR="/root/gemini-backend"
+            DEPLOY_DIR="/home/gemini-backend"
 
             # Create deployment directory if it doesn't exist
             mkdir -p $DEPLOY_DIR
