@@ -29,7 +29,8 @@ export default async function HeroLanding() {
         <Link
           href="https://twitter.com/miickasmt/status/1810465801649938857"
           className={cn(
-            buttonVariants({ variant: "outline", size: "sm", rounded: "full" }),
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "rounded-full",
             "px-4",
           )}
           target="_blank"
