@@ -1,6 +1,6 @@
 [build]
-  # Build command - install dependencies and build web-app with npm
-  command = "cd apps/web-app && npm install --legacy-peer-deps && npm run build"
+  # Build command - install dependencies and build web-app with pnpm
+  command = "cd apps/web-app && pnpm install --no-frozen-lockfile && pnpm run build"
 
   # Publish directory for the web app
   publish = "apps/web-app/.next"
@@ -12,9 +12,12 @@
   # Node.js version
   NODE_VERSION = "20"
 
+  # PNPM version
+  PNPM_VERSION = "9"
+
   # Disable Next.js telemetry
   NEXT_TELEMETRY_DISABLED = "1"
-  
+
   # Build optimizations
   NODE_OPTIONS = "--max-old-space-size=4096"
 
