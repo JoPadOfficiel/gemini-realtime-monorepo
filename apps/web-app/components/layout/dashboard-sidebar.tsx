@@ -12,7 +12,8 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import {
   Tooltip,
   TooltipContent,
@@ -167,7 +168,7 @@ export function DashboardSidebar({ links }: DashboardSidebarProps) {
                 ))}
               </nav>
 
-              <div className="mt-auto xl:p-4">
+              <div className="mt-auto p-4">
                 {isSidebarExpanded ? <UpgradeCard /> : null}
               </div>
             </div>
@@ -197,6 +198,9 @@ export function MobileSheetSidebar({ links }: DashboardSidebarProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0">
+          <VisuallyHidden>
+            <SheetTitle>Navigation Menu</SheetTitle>
+          </VisuallyHidden>
           <ScrollArea className="h-full overflow-y-auto">
             <div className="flex h-screen flex-col">
               <nav className="flex flex-1 flex-col gap-y-8 p-6 text-lg font-medium">
@@ -256,7 +260,7 @@ export function MobileSheetSidebar({ links }: DashboardSidebarProps) {
                   </section>
                 ))}
 
-                <div className="mt-auto">
+                <div className="mt-auto px-6">
                   <UpgradeCard />
                 </div>
               </nav>

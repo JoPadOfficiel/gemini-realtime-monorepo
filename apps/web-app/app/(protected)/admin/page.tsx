@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { constructMetadata } from "@/lib/utils";
 import { DashboardHeader } from "@/components/dashboard/header";
-import InfoCard from "@/components/dashboard/info-card";
-import TransactionsList from "@/components/dashboard/transactions-list";
+import AdminDashboard from "@/components/admin/admin-dashboard";
+import UsersList from "@/components/admin/users-list";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const metadata = constructMetadata({
   title: "Admin – SaaS Starter",
@@ -18,19 +19,24 @@ export default async function AdminPage() {
   return (
     <>
       <DashboardHeader
-        heading="Admin Panel"
-        text="Access only for users with ADMIN role."
+        heading="Admin Dashboard"
+        text="User management, analytics and platform monitoring."
       />
-      <div className="flex flex-col gap-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <InfoCard />
-          <InfoCard />
-          <InfoCard />
-          <InfoCard />
-        </div>
-        <TransactionsList />
-        <TransactionsList />
-      </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="users">User Management</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <AdminDashboard />
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-6">
+          <UsersList />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

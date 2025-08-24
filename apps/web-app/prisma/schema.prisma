@@ -58,9 +58,13 @@ model User {
   createdAt     DateTime  @default(now()) @map(name: "created_at")
   updatedAt     DateTime  @default(now()) @map(name: "updated_at")
   role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
 
   accounts Account[]
   sessions Session[]
+  tokenUsages TokenUsage[]
+  userActivities UserActivity[]
 
   stripeCustomerId       String?   @unique @map(name: "stripe_customer_id")
   stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
@@ -77,4 +81,54 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map(name: "verification_tokens")
+}
+
+model TokenUsage {
+  id            String   @id @default(cuid())
+  userId        String
+  model         String
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  totalTokens   Int      @default(0)
+  cost          Float?
+  endpoint      String?
+  sessionId     String?
+  createdAt     DateTime @default(now()) @map(name: "created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map(name: "token_usages")
+}
+
+model UserActivity {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now()) @map(name: "created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map(name: "user_activities")
+}
+
+model ModelPricing {
+  id                    String   @id @default(cuid())
+  modelId               String   @unique
+  modelName             String
+  textInputPricePerMillion   Float    // Price per 1M text input tokens in USD
+  textOutputPricePerMillion  Float    // Price per 1M text output tokens in USD
+  audioInputPricePerMillion  Float?   // Price per 1M audio input tokens in USD
+  audioOutputPricePerMillion Float?   // Price per 1M audio output tokens in USD
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now()) @map(name: "created_at")
+  updatedAt             DateTime @updatedAt @map(name: "updated_at")
+
+  @@map(name: "model_pricing")
 }

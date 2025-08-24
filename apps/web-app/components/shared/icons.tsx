@@ -21,6 +21,8 @@ import {
   LucideIcon,
   LucideProps,
   MessagesSquare,
+  Mic,
+  Monitor,
   Moon,
   MoreVertical,
   Package,
@@ -31,7 +33,9 @@ import {
   SunMedium,
   Trash,
   User,
+  Video,
   X,
+  Zap,
 } from "lucide-react";
 
 export type Icon = LucideIcon;
@@ -108,6 +112,8 @@ export const Icons = {
   logo: Puzzle,
   media: Image,
   messages: MessagesSquare,
+  mic: Mic,
+  monitor: Monitor,
   moon: Moon,
   package: Package,
   page: File,
@@ -135,5 +141,7 @@ export const Icons = {
     </svg>
   ),
   user: User,
+  video: Video,
   warning: AlertTriangle,
+  zap: Zap,
 };

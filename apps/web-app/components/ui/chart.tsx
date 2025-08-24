@@ -69,7 +69,7 @@ ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
+    ([, config]) => config.theme || config.color
   )
 
   if (!colorConfig.length) {
@@ -113,10 +113,7 @@ const ChartTooltipContent = React.forwardRef<
       labelKey?: string
       payload?: any[]
       active?: boolean
-      label?: any
-      labelFormatter?: any
-      labelClassName?: string
-      formatter?: any
+      label?: string
     }
 >(
   (
@@ -145,7 +142,7 @@ const ChartTooltipContent = React.forwardRef<
       }
 
       const [item] = payload
-      const key = `${labelKey || item.dataKey || item.name || "value"}`
+      const key = `${labelKey || item?.dataKey || item?.name || "value"}`
       const itemConfig = getPayloadConfigFromPayload(config, item, key)
       const value =
         !labelKey && typeof label === "string"
@@ -266,11 +263,10 @@ const ChartLegend = RechartsPrimitive.Legend
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> & {
+  React.ComponentProps<"div"> &
+    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
       hideIcon?: boolean
       nameKey?: string
-      payload?: any[]
-      verticalAlign?: string
     }
 >(
   (

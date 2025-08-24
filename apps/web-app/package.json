@@ -148,5 +148,8 @@
     "tailwindcss": "^3.4.17",
     "typescript": "5.9.2",
     "unist-util-visit": "^5.0.0"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
