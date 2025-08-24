@@ -73,9 +73,9 @@ export function GeminiSessionStats({
   useEffect(() => {
     const fetchTokenUsage = async () => {
       if (!sessionId) return;
-      
+
       try {
-        const response = await fetch(`http://localhost:8000/api/tokens/usage/${sessionId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/tokens/usage/${sessionId}`);
         if (response.ok) {
           const data = await response.json();
           setTokenUsage({
@@ -94,6 +94,8 @@ export function GeminiSessionStats({
       const interval = setInterval(fetchTokenUsage, 5000); // Update every 5 seconds
       return () => clearInterval(interval);
     }
+
+    return () => {}; // Return empty cleanup function for other cases
   }, [sessionId, isConnected, tokenCount]);
 
   const formatDuration = (seconds: number) => {

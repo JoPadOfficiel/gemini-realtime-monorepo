@@ -72,7 +72,7 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
       if (!user?.id) return;
 
       try {
-        const response = await fetch(`http://localhost:8000/api/users/${user.id}/settings`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/users/${user.id}/settings`);
         if (response.ok) {
           const userSettings = await response.json();
           console.log('🔧 Loading user settings:', userSettings);
@@ -105,7 +105,7 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
         setIsLoadingModels(true);
 
         // First, try to get user-specific model access
-        const userModelsResponse = await fetch(`http://localhost:8000/api/admin/users/${user.id}/models`);
+        const userModelsResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/users/${user.id}/models`);
         let userModels = [];
 
         if (userModelsResponse.ok) {
@@ -122,7 +122,7 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
 
         // If no user-specific models, get global models
         if (userModels.length === 0) {
-          const globalModelsResponse = await fetch('http://localhost:8000/api/admin/models');
+          const globalModelsResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/models`);
           if (globalModelsResponse.ok) {
             const globalModels = await globalModelsResponse.json();
             // Filter only enabled models
@@ -171,7 +171,7 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | null>(null);
   const audioBuffer = useRef<Float32Array[]>([]);
   const isPlaying = useRef(false);
   const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -299,7 +299,8 @@ export function GeminiAudioInterface({ user }: GeminiAudioInterfaceProps) {
     }
 
     const buffer = audioContextRef.current.createBuffer(1, audioData.length, 24000);
-    buffer.copyToChannel(audioData, 0);
+    const channelData = new Float32Array(audioData);
+    buffer.copyToChannel(channelData, 0);
 
     const source = audioContextRef.current.createBufferSource();
     source.buffer = buffer;

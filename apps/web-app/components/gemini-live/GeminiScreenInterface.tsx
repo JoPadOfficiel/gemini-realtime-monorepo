@@ -134,11 +134,14 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
       }
 
       // Handle screen share end
-      screenStream.getVideoTracks()[0].addEventListener('ended', () => {
-        console.log('Screen sharing ended by user');
-        setIsScreenSharing(false);
-        stopStream();
-      });
+      const videoTrack = screenStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.addEventListener('ended', () => {
+          console.log('Screen sharing ended by user');
+          setIsScreenSharing(false);
+          stopStream();
+        });
+      }
 
       setIsScreenSharing(true);
       return combinedStream;
@@ -188,7 +191,8 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
     const audioData = audioBuffer.current.shift()!;
 
     const buffer = audioContextRef.current.createBuffer(1, audioData.length, 24000);
-    buffer.copyToChannel(audioData, 0);
+    const channelData = new Float32Array(audioData);
+    buffer.copyToChannel(channelData, 0);
 
     const source = audioContextRef.current.createBufferSource();
     source.buffer = buffer;

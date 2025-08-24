@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -73,19 +73,10 @@ export function GeminiSettingsPopup({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load user settings when popup opens
-  useEffect(() => {
-    if (isOpen) {
-      loadUserSettings();
-    }
-  }, [isOpen, userId]);
-
-
-
-  const loadUserSettings = async () => {
+  const loadUserSettings = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8000/api/users/${userId}/settings`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/users/${userId}/settings`);
 
       if (response.ok) {
         const data = await response.json();
@@ -100,13 +91,20 @@ export function GeminiSettingsPopup({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Load user settings when popup opens
+  useEffect(() => {
+    if (isOpen) {
+      loadUserSettings();
+    }
+  }, [isOpen, userId, loadUserSettings]);
 
   const saveUserSettings = async () => {
     try {
       setIsSaving(true);
 
-      const response = await fetch(`http://localhost:8000/api/users/${userId}/settings`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/users/${userId}/settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -263,7 +261,7 @@ export function GeminiSettingsPopup({
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Choose the voice for Gemini's audio responses
+                    Choose the voice for Gemini&apos;s audio responses
                   </p>
                 </div>
 
