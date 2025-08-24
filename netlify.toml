@@ -1,12 +1,12 @@
 [build]
   # Build command - create workspace, install dependencies and build web-app with pnpm
-  command = "cat > pnpm-workspace.yaml << 'EOF'\npackages:\n  - \"apps/*\"\n  - \"packages/*\"\nEOF\nrm -f apps/web-app/pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm --filter saas-starter run build"
+  command = "cd ../.. && cat > pnpm-workspace.yaml << 'EOF'\npackages:\n  - \"apps/*\"\n  - \"packages/*\"\nEOF\nrm -f apps/web-app/pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm --filter saas-starter run build"
 
-  # Publish directory for the web app
-  publish = "apps/web-app/.next"
+  # Base directory for the build (set to the Next.js app directory)
+  base = "apps/web-app"
 
-  # Base directory for the build
-  base = "."
+  # Publish directory for the web app (Next.js plugin handles this automatically)
+  publish = "."
 
   # Ignore automatic dependency installation
   ignore = "/bin/false"
@@ -92,3 +92,7 @@
 # NEXT_PUBLIC_STRIPE_PRO_YEARLY_PLAN_ID=your-plan-id
 # NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PLAN_ID=your-plan-id
 # NEXT_PUBLIC_STRIPE_BUSINESS_YEARLY_PLAN_ID=your-plan-id
+
+# Plugin configuration
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
