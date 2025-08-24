@@ -4,7 +4,7 @@ import { join } from "path";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { asset: string[] } }
+  { params }: { params: Promise<{ asset: string[] }> }
 ) {
   try {
     const resolvedParams = await params;

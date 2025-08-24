@@ -13,10 +13,11 @@ export async function GET(request: NextRequest) {
         role: "USER",
       },
       secret: process.env.NEXTAUTH_SECRET || "your-secret-key-here",
+      salt: "authjs.session-token",
     });
 
     // Set the session cookie
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set("next-auth.session-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
