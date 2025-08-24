@@ -6,47 +6,7 @@ on:
   workflow_dispatch: # Allow manual deployment
 
 jobs:
-  # Job 1: Deploy Web App to Netlify
-  deploy-web-app:
-    name: Deploy Web App to Netlify
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'apps/web-app/package-lock.json'
-
-      - name: Install dependencies
-        run: |
-          cd apps/web-app
-          npm install
-
-      - name: Build web app
-        run: |
-          cd apps/web-app
-          npm run build
-
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3.0
-        with:
-          publish-dir: './apps/web-app/.next'
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-          enable-pull-request-comment: false
-          enable-commit-comment: true
-          overwrites-pull-request-comment: true
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
-  # Job 2: Deploy Backend to VPS
+  # Deploy Backend to VPS
   deploy-backend:
     name: Deploy Backend to VPS
     runs-on: ubuntu-latest
@@ -135,7 +95,7 @@ jobs:
             echo "DEBUG=${{ secrets.DEBUG }}" >> .env
             echo "HOST=${{ secrets.HOST }}" >> .env
             echo "PORT=8000" >> .env
-            echo "CORS_ORIGINS=https://gemini-live.netlify.app" >> .env
+            echo "CORS_ORIGINS=https://gemini-realtime-monorepo-web-app.vercel.app" >> .env
 
             # Kill existing process on port 8000
             echo "Stopping existing backend service on port 8000..."
