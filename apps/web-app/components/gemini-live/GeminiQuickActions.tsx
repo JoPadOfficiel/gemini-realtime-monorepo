@@ -66,7 +66,7 @@ export function GeminiQuickActions({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
+              <Zap className="size-5" />
               Quick Actions
               {isStreaming && (
                 <Badge variant="default" className="animate-pulse">
@@ -81,7 +81,7 @@ export function GeminiQuickActions({
                 onClick={onOpenSettings}
                 className="flex items-center gap-2"
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="size-4" />
                 <span className="hidden sm:inline">Settings</span>
               </Button>
             )}
@@ -89,7 +89,7 @@ export function GeminiQuickActions({
         </CardHeader>
       <CardContent>
         {/* Desktop and Tablet View */}
-        <div className="hidden sm:grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="hidden grid-cols-1 gap-4 sm:grid md:grid-cols-3">
           {modes.map((mode) => {
             const isCurrentMode = mode.id === currentMode;
             const Icon = mode.icon;
@@ -100,13 +100,13 @@ export function GeminiQuickActions({
                   isCurrentMode ? 'ring-2 ring-primary' : ''
                 }`}>
                   <CardContent className="p-4">
-                    <div className="flex flex-col items-center text-center space-y-3">
-                      <div className={`p-3 rounded-full ${mode.color} text-white`}>
-                        <Icon className="h-6 w-6" />
+                    <div className="flex flex-col items-center space-y-3 text-center">
+                      <div className={`rounded-full p-3 ${mode.color} text-white`}>
+                        <Icon className="size-6" />
                       </div>
                       <div>
                         <h3 className="font-medium">{mode.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {mode.description}
                         </p>
                       </div>
@@ -119,7 +119,7 @@ export function GeminiQuickActions({
                               className="w-full"
                               size="sm"
                             >
-                              <Play className="h-4 w-4 mr-2" />
+                              <Play className="mr-2 size-4" />
                               Start Session
                             </Button>
                           ) : (
@@ -129,7 +129,7 @@ export function GeminiQuickActions({
                               className="w-full"
                               size="sm"
                             >
-                              <Square className="h-4 w-4 mr-2" />
+                              <Square className="mr-2 size-4" />
                               Stop Session
                             </Button>
                           )}
@@ -153,7 +153,7 @@ export function GeminiQuickActions({
                 {isCurrentMode && (
                   <Badge 
                     variant="default" 
-                    className="absolute -top-2 -right-2 text-xs"
+                    className="absolute -right-2 -top-2 text-xs"
                   >
                     Active
                   </Badge>
@@ -164,7 +164,7 @@ export function GeminiQuickActions({
         </div>
 
         {/* Mobile View - Compact Layout */}
-        <div className="block sm:hidden space-y-3">
+        <div className="block space-y-3 sm:hidden">
           {/* Current Active Mode */}
           {(() => {
             const currentModeData = modes.find(mode => mode.id === currentMode);
@@ -177,11 +177,11 @@ export function GeminiQuickActions({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-full ${currentModeData.color} text-white`}>
-                        <Icon className="h-5 w-5" />
+                      <div className={`rounded-full p-2 ${currentModeData.color} text-white`}>
+                        <Icon className="size-5" />
                       </div>
                       <div>
-                        <h3 className="font-medium text-sm">{currentModeData.name}</h3>
+                        <h3 className="text-sm font-medium">{currentModeData.name}</h3>
                         <p className="text-xs text-muted-foreground">{currentModeData.description}</p>
                       </div>
                     </div>
@@ -193,7 +193,7 @@ export function GeminiQuickActions({
                           size="sm"
                           className="flex items-center gap-1"
                         >
-                          <Play className="h-3 w-3" />
+                          <Play className="size-3" />
                           <span className="text-xs">Start</span>
                         </Button>
                       ) : (
@@ -203,7 +203,7 @@ export function GeminiQuickActions({
                           size="sm"
                           className="flex items-center gap-1"
                         >
-                          <Square className="h-3 w-3" />
+                          <Square className="size-3" />
                           <span className="text-xs">Stop</span>
                         </Button>
                       )}
@@ -226,11 +226,11 @@ export function GeminiQuickActions({
                     <Card className="cursor-pointer transition-all hover:shadow-sm">
                       <CardContent className="p-3">
                         <div className="flex items-center space-x-2">
-                          <div className={`p-1.5 rounded-full ${mode.color} text-white`}>
-                            <Icon className="h-4 w-4" />
+                          <div className={`rounded-full p-1.5 ${mode.color} text-white`}>
+                            <Icon className="size-4" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-xs truncate">{mode.name}</h3>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-xs font-medium">{mode.name}</h3>
                           </div>
                         </div>
                       </CardContent>

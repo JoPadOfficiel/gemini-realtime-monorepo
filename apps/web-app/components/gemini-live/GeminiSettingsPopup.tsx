@@ -153,30 +153,30 @@ export function GeminiSettingsPopup({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-50"
+        className="fixed inset-0 z-50 bg-black/50"
         onClick={onClose}
       />
 
       {/* Popup */}
-      <div className="fixed top-4 right-4 z-50 w-full max-w-md max-h-[90vh] bg-background border border-border rounded-lg shadow-2xl overflow-hidden">
-        <div className="flex flex-col h-full max-h-[90vh]">
+      <div className="fixed right-4 top-4 z-50 max-h-[90vh] w-full max-w-md overflow-hidden rounded-lg border border-border bg-background shadow-2xl">
+        <div className="flex h-full max-h-[90vh] flex-col">
           {/* Header - Fixed */}
-          <div className="flex-shrink-0 p-6 pb-3 border-b border-border bg-background rounded-t-lg">
+          <div className="shrink-0 rounded-t-lg border-b border-border bg-background p-6 pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
+                <Settings className="size-5" />
                 <h2 className="text-lg font-semibold">User Settings</h2>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="h-8 w-8 p-0"
+                className="size-8 p-0"
               >
-                <X className="h-4 w-4" />
+                <X className="size-4" />
               </Button>
             </div>
-            <Badge variant="secondary" className="text-xs w-fit mt-2">
+            <Badge variant="secondary" className="mt-2 w-fit text-xs">
               Configurable by User
             </Badge>
           </div>
@@ -184,9 +184,9 @@ export function GeminiSettingsPopup({
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-6">
             {isLoading ? (
-              <div className="flex items-center justify-center h-32">
+              <div className="flex h-32 items-center justify-center">
                 <div className="text-center">
-                  <Settings className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <Settings className="mx-auto mb-2 size-8 animate-spin" />
                   <p className="text-sm text-muted-foreground">Loading settings...</p>
                 </div>
               </div>
@@ -196,7 +196,7 @@ export function GeminiSettingsPopup({
                 {availableModels.length > 1 && (
                   <div className="space-y-2">
                     <Label htmlFor="model-select" className="flex items-center gap-2 text-sm font-medium">
-                      <Cpu className="h-4 w-4" />
+                      <Cpu className="size-4" />
                       AI Model
                     </Label>
                     <Select
@@ -242,7 +242,7 @@ export function GeminiSettingsPopup({
                 {/* Voice Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="voice-select" className="flex items-center gap-2 text-sm font-medium">
-                    <Volume2 className="h-4 w-4" />
+                    <Volume2 className="size-4" />
                     Voice Selection
                   </Label>
                   <Select
@@ -268,7 +268,7 @@ export function GeminiSettingsPopup({
                 {/* Language Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="language-select" className="flex items-center gap-2 text-sm font-medium">
-                    <Globe className="h-4 w-4" />
+                    <Globe className="size-4" />
                     Language
                   </Label>
                   <Select
@@ -298,7 +298,7 @@ export function GeminiSettingsPopup({
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <Label htmlFor="proactive-audio" className="flex items-center gap-2 text-sm">
-                        <Volume2 className="h-3 w-3" />
+                        <Volume2 className="size-3" />
                         Proactive Audio
                       </Label>
                       <p className="text-xs text-muted-foreground">
@@ -315,7 +315,7 @@ export function GeminiSettingsPopup({
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <Label htmlFor="affective-dialog" className="flex items-center gap-2 text-sm">
-                        <Brain className="h-3 w-3" />
+                        <Brain className="size-3" />
                         Affective Dialog
                       </Label>
                       <p className="text-xs text-muted-foreground">
@@ -332,7 +332,7 @@ export function GeminiSettingsPopup({
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <Label htmlFor="vad" className="flex items-center gap-2 text-sm">
-                        <Mic className="h-3 w-3" />
+                        <Mic className="size-3" />
                         Voice Activity Detection
                       </Label>
                       <p className="text-xs text-muted-foreground">
@@ -354,7 +354,7 @@ export function GeminiSettingsPopup({
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <Label htmlFor="google-search" className="flex items-center gap-2 text-sm">
-                        <Search className="h-3 w-3" />
+                        <Search className="size-3" />
                         Google Search Integration
                       </Label>
                       <p className="text-xs text-muted-foreground">
@@ -373,7 +373,7 @@ export function GeminiSettingsPopup({
           </div>
 
           {/* Footer - Fixed */}
-          <div className="flex-shrink-0 border-t border-border bg-background rounded-b-lg">
+          <div className="shrink-0 rounded-b-lg border-t border-border bg-background">
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <Button
@@ -392,9 +392,9 @@ export function GeminiSettingsPopup({
                   size="sm"
                 >
                   {isSaving ? (
-                    <Settings className="h-4 w-4 animate-spin" />
+                    <Settings className="size-4 animate-spin" />
                   ) : (
-                    <Save className="h-4 w-4" />
+                    <Save className="size-4" />
                   )}
                   {isSaving ? 'Saving...' : 'Save Settings'}
                 </Button>

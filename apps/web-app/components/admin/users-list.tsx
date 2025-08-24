@@ -146,9 +146,9 @@ export default function UsersList() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center h-64">
+        <CardContent className="flex h-64 items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto size-8 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-2 text-muted-foreground">Loading users...</p>
           </div>
         </CardContent>
@@ -160,7 +160,7 @@ export default function UsersList() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
+          <Users className="size-5" />
           User Management
           <Badge variant="secondary">{users.length} users</Badge>
         </CardTitle>
@@ -177,12 +177,12 @@ export default function UsersList() {
               <TableRow>
 {/* Progressive responsive columns: Mobile(2) -> SM(3) -> MD(5) -> LG(6) -> XL(8) */}
                 <TableHead className="w-auto">User</TableHead>
-                <TableHead className="hidden sm:table-cell w-20">Status</TableHead>
-                <TableHead className="hidden md:table-cell w-16">Role</TableHead>
-                <TableHead className="hidden md:table-cell w-24 text-center">Tokens</TableHead>
-                <TableHead className="hidden lg:table-cell w-20 text-center">Activities</TableHead>
-                <TableHead className="hidden xl:table-cell w-28">Registration</TableHead>
-                <TableHead className="hidden xl:table-cell w-28">Last Login</TableHead>
+                <TableHead className="hidden w-20 sm:table-cell">Status</TableHead>
+                <TableHead className="hidden w-16 md:table-cell">Role</TableHead>
+                <TableHead className="hidden w-24 text-center md:table-cell">Tokens</TableHead>
+                <TableHead className="hidden w-20 text-center lg:table-cell">Activities</TableHead>
+                <TableHead className="hidden w-28 xl:table-cell">Registration</TableHead>
+                <TableHead className="hidden w-28 xl:table-cell">Last Login</TableHead>
                 <TableHead className="w-32 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -192,7 +192,7 @@ export default function UsersList() {
                   <TableCell>
                     <div className="flex flex-col">
                       <div className="font-medium">{user.name || 'No name'}</div>
-                      <div className="text-sm text-muted-foreground break-all" title={user.email || ''}>
+                      <div className="break-all text-sm text-muted-foreground" title={user.email || ''}>
                         {user.email ? truncateEmail(user.email, 25) : 'No email'}
                       </div>
                     </div>
@@ -229,22 +229,22 @@ export default function UsersList() {
                     </div>
                   </TableCell>
 {/* Registration column - visible from XL up */}
-                  <TableCell className="text-sm hidden xl:table-cell">
+                  <TableCell className="hidden text-sm xl:table-cell">
                     {formatDate(user.createdAt)}
                   </TableCell>
                   {/* Last Login column - visible from XL up */}
-                  <TableCell className="text-sm hidden xl:table-cell">
+                  <TableCell className="hidden text-sm xl:table-cell">
                     {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 flex-wrap">
+                    <div className="flex flex-wrap items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleViewDetails(user.id)}
-                        className="gap-1 min-w-[80px]"
+                        className="min-w-[80px] gap-1"
                       >
-                        <Eye className="h-3 w-3" />
+                        <Eye className="size-3" />
                         <span className="hidden sm:inline">Details</span>
                         <span className="sm:hidden">View</span>
                       </Button>
@@ -254,17 +254,17 @@ export default function UsersList() {
                         size="sm"
                         onClick={() => handleToggleUserStatus(user.id, user.isActive)}
                         disabled={actionLoading === user.id}
-                        className="gap-1 min-w-[90px]"
+                        className="min-w-[90px] gap-1"
                       >
                         {user.isActive ? (
                           <>
-                            <UserX className="h-3 w-3" />
+                            <UserX className="size-3" />
                             <span className="hidden sm:inline">Deactivate</span>
                             <span className="sm:hidden">Disable</span>
                           </>
                         ) : (
                           <>
-                            <UserCheck className="h-3 w-3" />
+                            <UserCheck className="size-3" />
                             <span className="hidden sm:inline">Activate</span>
                             <span className="sm:hidden">Enable</span>
                           </>
@@ -277,9 +277,9 @@ export default function UsersList() {
                             variant="destructive"
                             size="sm"
                             disabled={actionLoading === user.id}
-                            className="gap-1 min-w-[80px]"
+                            className="min-w-[80px] gap-1"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="size-3" />
                             <span className="hidden sm:inline">Delete</span>
                             <span className="sm:hidden">Del</span>
                           </Button>
@@ -313,7 +313,7 @@ export default function UsersList() {
         </div>
 
         {users.length === 0 && (
-          <div className="text-center py-8">
+          <div className="py-8 text-center">
             <p className="text-muted-foreground">No users found.</p>
           </div>
         )}

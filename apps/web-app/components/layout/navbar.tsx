@@ -106,7 +106,7 @@ export function NavBar({ scroll = false }: NavBarProps) {
               className="hidden md:block"
             >
               <Button
-                className="gap-2 px-5 rounded-full"
+                className="gap-2 rounded-full px-5"
                 variant="default"
                 size="sm"
               >
@@ -115,7 +115,7 @@ export function NavBar({ scroll = false }: NavBarProps) {
             </Link>
           ) : status === "unauthenticated" ? (
             <Button
-              className="hidden gap-2 px-5 md:flex rounded-full"
+              className="hidden gap-2 rounded-full px-5 md:flex"
               variant="default"
               size="sm"
               onClick={() => setShowSignInModal(true)}

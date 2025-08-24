@@ -177,8 +177,8 @@ export function ModelConfiguration() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin" />
+        <CardContent className="flex h-64 items-center justify-center">
+          <RefreshCw className="size-8 animate-spin" />
         </CardContent>
       </Card>
     );
@@ -188,7 +188,7 @@ export function ModelConfiguration() {
     <div className="space-y-6">
       {error && (
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="size-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -196,7 +196,7 @@ export function ModelConfiguration() {
 
       {success && (
         <Alert>
-          <CheckCircle className="h-4 w-4" />
+          <CheckCircle className="size-4" />
           <AlertTitle>Success</AlertTitle>
           <AlertDescription>{success}</AlertDescription>
         </Alert>
@@ -205,7 +205,7 @@ export function ModelConfiguration() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+            <Settings className="size-5" />
             Model Configuration
           </CardTitle>
         </CardHeader>
@@ -286,7 +286,7 @@ export function ModelConfiguration() {
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">Model Access for {users.find(u => u.id === selectedUser)?.name}</h3>
                       <Button onClick={updateUserModelAccess}>
-                        <Save className="h-4 w-4 mr-2" />
+                        <Save className="mr-2 size-4" />
                         Save Changes
                       </Button>
                     </div>

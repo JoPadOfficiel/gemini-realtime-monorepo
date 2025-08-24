@@ -48,31 +48,31 @@ export function GeminiResponsiveActions({
       id: 'audio',
       title: 'Audio Chat',
       description: 'Voice conversation with AI',
-      icon: <Mic className="h-5 w-5" />,
+      icon: <Mic className="size-5" />,
       href: '/dashboard/gemini-live/audio',
       isActive: currentMode === 'audio',
       buttonText: currentMode === 'audio' ? 'Start Session' : 'Switch to Audio Chat',
-      buttonIcon: currentMode === 'audio' ? <Play className="h-4 w-4" /> : <Mic className="h-4 w-4" />
+      buttonIcon: currentMode === 'audio' ? <Play className="size-4" /> : <Mic className="size-4" />
     },
     {
       id: 'video',
       title: 'Video Chat',
       description: 'Camera-powered conversation',
-      icon: <Video className="h-5 w-5" />,
+      icon: <Video className="size-5" />,
       href: '/dashboard/gemini-live/video',
       isActive: currentMode === 'video',
       buttonText: currentMode === 'video' ? 'Start Session' : 'Switch to Video Chat',
-      buttonIcon: currentMode === 'video' ? <Play className="h-4 w-4" /> : <Video className="h-4 w-4" />
+      buttonIcon: currentMode === 'video' ? <Play className="size-4" /> : <Video className="size-4" />
     },
     {
       id: 'screen',
       title: 'Screen Share',
       description: 'Share your screen with AI',
-      icon: <Monitor className="h-5 w-5" />,
+      icon: <Monitor className="size-5" />,
       href: '/dashboard/gemini-live/screen',
       isActive: currentMode === 'screen',
       buttonText: currentMode === 'screen' ? 'Start Session' : 'Switch to Screen Share',
-      buttonIcon: currentMode === 'screen' ? <Play className="h-4 w-4" /> : <Monitor className="h-4 w-4" />
+      buttonIcon: currentMode === 'screen' ? <Play className="size-4" /> : <Monitor className="size-4" />
     }
   ];
 
@@ -90,7 +90,7 @@ export function GeminiResponsiveActions({
           <div className="flex items-center space-x-3">
             {action.icon}
             <div>
-              <h3 className="font-medium text-sm">{action.title}</h3>
+              <h3 className="text-sm font-medium">{action.title}</h3>
               <p className="text-xs text-muted-foreground">{action.description}</p>
             </div>
           </div>
@@ -129,9 +129,9 @@ export function GeminiResponsiveActions({
       <div className="hidden lg:block">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap className="h-4 w-4" />
-              <span className="font-medium text-sm">Quick Actions</span>
+            <div className="mb-4 flex items-center gap-2">
+              <Zap className="size-4" />
+              <span className="text-sm font-medium">Quick Actions</span>
             </div>
             <div className="space-y-3">
               {quickActions.map((action) => (
@@ -146,18 +146,18 @@ export function GeminiResponsiveActions({
       <div className="hidden md:block lg:hidden">
         <Card>
           <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="h-4 w-4" />
-              <span className="font-medium text-sm">Quick Actions</span>
+            <div className="mb-3 flex items-center gap-2">
+              <Zap className="size-4" />
+              <span className="text-sm font-medium">Quick Actions</span>
             </div>
             <div className="grid grid-cols-1 gap-2">
               {quickActions.map((action) => (
-                <div key={action.id} className={`p-3 rounded-lg border transition-all hover:shadow-sm ${action.isActive ? 'ring-2 ring-primary bg-primary/5' : ''}`}>
+                <div key={action.id} className={`rounded-lg border p-3 transition-all hover:shadow-sm ${action.isActive ? 'bg-primary/5 ring-2 ring-primary' : ''}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       {action.icon}
                       <div>
-                        <h3 className="font-medium text-sm">{action.title}</h3>
+                        <h3 className="text-sm font-medium">{action.title}</h3>
                         <p className="text-xs text-muted-foreground">{action.description}</p>
                       </div>
                     </div>
@@ -195,22 +195,22 @@ export function GeminiResponsiveActions({
 
       {/* Mobile View - Sheet */}
       <div className="block md:hidden">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            <span className="font-medium text-sm">Quick Actions</span>
+            <Zap className="size-4" />
+            <span className="text-sm font-medium">Quick Actions</span>
           </div>
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Menu className="h-4 w-4" />
+                <Menu className="size-4" />
                 <span className="text-xs">Actions</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[80vh]">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
+                  <Zap className="size-5" />
                   Quick Actions
                 </SheetTitle>
               </SheetHeader>
@@ -233,7 +233,7 @@ export function GeminiResponsiveActions({
                   <div className="flex items-center space-x-2">
                     {activeAction.icon}
                     <div>
-                      <h3 className="font-medium text-sm">{activeAction.title}</h3>
+                      <h3 className="text-sm font-medium">{activeAction.title}</h3>
                       <p className="text-xs text-muted-foreground">{activeAction.description}</p>
                     </div>
                   </div>

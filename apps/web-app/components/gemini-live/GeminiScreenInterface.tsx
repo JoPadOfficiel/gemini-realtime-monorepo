@@ -474,12 +474,12 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
 
       <div className="space-y-6">
         {/* Mobile/Tablet Layout */}
-        <div className="lg:hidden space-y-6">
+        <div className="space-y-6 lg:hidden">
           {/* Screen Share Controls */}
           <Card className="h-fit">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Monitor className="h-4 w-4" />
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Monitor className="size-4" />
                 Screen Share
                 {isStreaming && (
                   <Badge variant="default" className="animate-pulse text-xs">
@@ -490,13 +490,13 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Compact Screen Display */}
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-contain"
+                  className="size-full object-contain"
                 />
                 <canvas
                   ref={canvasRef}
@@ -507,17 +507,17 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
 
                 {/* Compact overlay controls */}
                 {isStreaming && (
-                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                  <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1">
                     <Button
                       onClick={toggleMicrophone}
                       variant={isMicEnabled ? "default" : "destructive"}
                       size="sm"
-                      className="rounded-full w-6 h-6 p-0"
+                      className="size-6 rounded-full p-0"
                     >
                       {isMicEnabled ? (
-                        <Mic className="h-3 w-3" />
+                        <Mic className="size-3" />
                       ) : (
-                        <MicOff className="h-3 w-3" />
+                        <MicOff className="size-3" />
                       )}
                     </Button>
 
@@ -525,9 +525,9 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                       onClick={stopStream}
                       variant="destructive"
                       size="sm"
-                      className="rounded-full w-6 h-6 p-0"
+                      className="size-6 rounded-full p-0"
                     >
-                      <StopCircle className="h-3 w-3" />
+                      <StopCircle className="size-3" />
                     </Button>
                   </div>
                 )}
@@ -539,9 +539,9 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                   <Button
                     onClick={startStream}
                     size="sm"
-                    className="h-12 w-12 rounded-full"
+                    className="size-12 rounded-full"
                   >
-                    <Share className="h-5 w-5" />
+                    <Share className="size-5" />
                   </Button>
                 </div>
               )}
@@ -565,11 +565,11 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             {/* Session Status */}
             <Card className="h-fit">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-xs font-medium">
                   {isConnected ? (
-                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <div className="size-2 rounded-full bg-green-500"></div>
                   ) : (
-                    <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                    <div className="size-2 rounded-full bg-red-500"></div>
                   )}
                   Session Status
                 </CardTitle>
@@ -587,12 +587,12 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             {/* Token Usage */}
             <Card className="h-fit">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium flex items-center gap-2">
-                  <BarChart3 className="h-3 w-3" />
+                <CardTitle className="flex items-center gap-2 text-xs font-medium">
+                  <BarChart3 className="size-3" />
                   Token Usage
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0 space-y-1">
+              <CardContent className="space-y-1 pt-0">
                 <div className="text-sm font-bold">
                   {tokenCount.toLocaleString()}
                 </div>
@@ -603,8 +603,8 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             {/* Session Metrics */}
             <Card className="h-fit">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium flex items-center gap-2">
-                  <MessageCircle className="h-3 w-3" />
+                <CardTitle className="flex items-center gap-2 text-xs font-medium">
+                  <MessageCircle className="size-3" />
                   Session Metrics
                 </CardTitle>
               </CardHeader>
@@ -617,8 +617,8 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             {/* Model Info */}
             <Card className="h-fit">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium flex items-center gap-2">
-                  <Cpu className="h-3 w-3" />
+                <CardTitle className="flex items-center gap-2 text-xs font-medium">
+                  <Cpu className="size-3" />
                   Model Info
                 </CardTitle>
               </CardHeader>
@@ -632,14 +632,14 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
         </div>
 
         {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-4 gap-6">
+        <div className="hidden gap-6 lg:grid lg:grid-cols-4">
           {/* Left Side - Controls and Stats */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="space-y-4 lg:col-span-1">
           {/* Screen Share Controls */}
           <Card className="h-fit">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Monitor className="h-4 w-4" />
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Monitor className="size-4" />
                 Screen Share
                 {isStreaming && (
                   <Badge variant="default" className="animate-pulse text-xs">
@@ -650,7 +650,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Compact Screen Display */}
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
                 {isScreenSharing ? (
                   <>
                     <video
@@ -658,7 +658,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-full object-contain"
+                      className="size-full object-contain"
                     />
                     <canvas
                       ref={canvasRef}
@@ -668,30 +668,30 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                     />
 
                     {/* Compact overlay controls */}
-                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                    <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1">
                       <Button
                         onClick={toggleMicrophone}
                         variant={isMicEnabled ? "default" : "destructive"}
                         size="sm"
-                        className="rounded-full w-6 h-6 p-0"
+                        className="size-6 rounded-full p-0"
                       >
                         {isMicEnabled ? (
-                          <Mic className="h-3 w-3" />
+                          <Mic className="size-3" />
                         ) : (
-                          <MicOff className="h-3 w-3" />
+                          <MicOff className="size-3" />
                         )}
                       </Button>
 
                       <Badge variant="secondary" className="px-2 py-0.5 text-xs">
-                        <Share className="h-2 w-2 mr-1" />
+                        <Share className="mr-1 size-2" />
                         Sharing
                       </Badge>
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex h-full items-center justify-center">
                     <div className="text-center">
-                      <Monitor className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <Monitor className="mx-auto mb-2 size-8 text-muted-foreground" />
                       <p className="text-xs text-muted-foreground">
                         No screen shared
                       </p>
@@ -708,7 +708,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                     size="sm"
                     className="h-8 px-4 text-xs"
                   >
-                    <Monitor className="h-3 w-3 mr-1" />
+                    <Monitor className="mr-1 size-3" />
                     Start
                   </Button>
                 ) : (
@@ -718,7 +718,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                     size="sm"
                     className="h-8 px-4 text-xs"
                   >
-                    <Square className="h-3 w-3 mr-1" />
+                    <Square className="mr-1 size-3" />
                     Stop
                   </Button>
                 )}
@@ -726,7 +726,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
 
               {/* Compact Status */}
               {isStreaming && (
-                <div className="text-center space-y-1">
+                <div className="space-y-1 text-center">
                   <div className="flex items-center justify-center gap-2 text-xs">
                     <span className={`${isScreenSharing ? 'text-purple-500' : 'text-red-500'}`}>
                       Screen: {isScreenSharing ? 'On' : 'Off'}
@@ -743,11 +743,11 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
           {/* Session Status */}
           <Card className="h-fit">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 {isConnected ? (
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  <div className="size-2 rounded-full bg-green-500"></div>
                 ) : (
-                  <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                  <div className="size-2 rounded-full bg-red-500"></div>
                 )}
                 Session Status
               </CardTitle>
@@ -761,7 +761,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </Badge>
                 {sessionId && (
-                  <div className="text-xs text-muted-foreground font-mono">
+                  <div className="font-mono text-xs text-muted-foreground">
                     {sessionId.slice(0, 8)}...
                   </div>
                 )}
@@ -772,12 +772,12 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
           {/* Token Usage */}
           <Card className="h-fit">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <BarChart3 className="size-4" />
                 Token Usage
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 space-y-2">
+            <CardContent className="space-y-2 pt-0">
               <div className="flex items-center justify-between">
                 <span className="text-lg font-bold">
                   {tokenCount.toLocaleString()}
@@ -796,8 +796,8 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
           {/* Session Metrics */}
           <Card className="h-fit">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <MessageCircle className="h-4 w-4" />
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <MessageCircle className="size-4" />
                 Session Metrics
               </CardTitle>
             </CardHeader>
@@ -820,17 +820,17 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
           {/* Model Info */}
           <Card className="h-fit">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Cpu className="h-4 w-4" />
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Cpu className="size-4" />
                 Model Info
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                <div className="font-medium text-sm">
+                <div className="text-sm font-medium">
                   {config.model.replace('gemini-', '').replace('-preview', '').replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                 </div>
-                <div className="flex items-center gap-1 flex-wrap">
+                <div className="flex flex-wrap items-center gap-1">
                   <Badge variant="secondary" className="text-xs">
                     Live Audio
                   </Badge>
@@ -844,7 +844,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
         </div>
 
           {/* Right Side - Expanded Conversation */}
-          <div className="lg:col-span-3 h-full">
+          <div className="h-full lg:col-span-3">
             <GeminiConversationHistory
             conversation={conversation}
             currentUserMessage={currentUserMessage}

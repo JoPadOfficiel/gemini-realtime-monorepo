@@ -140,10 +140,10 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-2 sm:p-6">
+      <DialogContent className="max-h-[90vh] w-[95vw] max-w-4xl overflow-y-auto p-2 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+            <Users className="size-5" />
             User Details
             {userStats && (
               <Badge variant={userStats.user.isActive ? 'default' : 'destructive'}>
@@ -168,7 +168,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
               <CardHeader>
                 <CardTitle className="text-lg">General Information</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">{userStats.user.name || 'Not defined'}</p>
@@ -200,11 +200,11 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
             </Card>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-blue-500" />
+                    <Zap className="size-4 text-blue-500" />
                     <div>
                       <p className="text-2xl font-bold">{userStats.summary.totalTokens.toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">Tokens used</p>
@@ -216,7 +216,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Coins className="h-4 w-4 text-green-500" />
+                    <Coins className="size-4 text-green-500" />
                     <div>
                       <p className="text-2xl font-bold">{formatCurrency(userStats.summary.totalCost)}</p>
                       <p className="text-xs text-muted-foreground">Total cost</p>
@@ -228,7 +228,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-purple-500" />
+                    <Calendar className="size-4 text-purple-500" />
                     <div>
                       <p className="text-2xl font-bold">{userStats.summary.totalSessions}</p>
                       <p className="text-xs text-muted-foreground">Sessions</p>
@@ -240,7 +240,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-orange-500" />
+                    <Activity className="size-4 text-orange-500" />
                     <div>
                       <p className="text-2xl font-bold">{userStats.summary.totalActivities}</p>
                       <p className="text-xs text-muted-foreground">Activities</p>
@@ -252,10 +252,10 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
 
             {/* Detailed Tabs */}
             <Tabs defaultValue="usage" className="w-full">
-              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1 h-auto sm:h-10">
-                <TabsTrigger value="usage" className="text-xs sm:text-sm py-2 sm:py-1">Token Usage</TabsTrigger>
-                <TabsTrigger value="models" className="text-xs sm:text-sm py-2 sm:py-1">Models Used</TabsTrigger>
-                <TabsTrigger value="activity" className="text-xs sm:text-sm py-2 sm:py-1">Recent Activity</TabsTrigger>
+              <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:h-10 sm:grid-cols-3">
+                <TabsTrigger value="usage" className="py-2 text-xs sm:py-1 sm:text-sm">Token Usage</TabsTrigger>
+                <TabsTrigger value="models" className="py-2 text-xs sm:py-1 sm:text-sm">Models Used</TabsTrigger>
+                <TabsTrigger value="activity" className="py-2 text-xs sm:py-1 sm:text-sm">Recent Activity</TabsTrigger>
               </TabsList>
               
               <TabsContent value="usage" className="space-y-4">
@@ -274,8 +274,8 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                             <TableHead className="w-24">Date</TableHead>
                             <TableHead className="w-auto">Model</TableHead>
                             <TableHead className="w-20 text-center">Tokens</TableHead>
-                            <TableHead className="hidden sm:table-cell w-20 text-center">Cost</TableHead>
-                            <TableHead className="hidden md:table-cell w-24">Endpoint</TableHead>
+                            <TableHead className="hidden w-20 text-center sm:table-cell">Cost</TableHead>
+                            <TableHead className="hidden w-24 md:table-cell">Endpoint</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -293,10 +293,10 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-center text-sm">{usage.totalTokens.toLocaleString()}</TableCell>
-                              <TableCell className="hidden sm:table-cell text-center text-sm">
+                              <TableCell className="hidden text-center text-sm sm:table-cell">
                                 {usage.cost ? formatCurrency(usage.cost) : 'Free'}
                               </TableCell>
-                              <TableCell className="hidden md:table-cell text-sm">{usage.endpoint || 'N/A'}</TableCell>
+                              <TableCell className="hidden text-sm md:table-cell">{usage.endpoint || 'N/A'}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -316,16 +316,16 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   <CardContent>
                     <div className="space-y-4">
                       {userStats.usageByModel.map((model) => (
-                        <div key={model.modelId || model.model} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg space-y-2 sm:space-y-0">
+                        <div key={model.modelId || model.model} className="flex flex-col space-y-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                           <div className="flex-1">
-                            <p className="font-medium text-sm sm:text-base break-words">{model.model}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
+                            <p className="break-words text-sm font-medium sm:text-base">{model.model}</p>
+                            <p className="text-xs text-muted-foreground sm:text-sm">
                               {model.sessionCount} sessions
                             </p>
                           </div>
-                          <div className="text-left sm:text-right flex-shrink-0">
-                            <p className="text-xl sm:text-2xl font-bold">{model.totalTokens.toLocaleString()}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">tokens</p>
+                          <div className="shrink-0 text-left sm:text-right">
+                            <p className="text-xl font-bold sm:text-2xl">{model.totalTokens.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground sm:text-sm">tokens</p>
                           </div>
                         </div>
                       ))}
@@ -343,7 +343,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   <CardContent>
                     <div className="space-y-2">
                       {userStats.user.userActivities?.map((activity) => (
-                        <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div key={activity.id} className="flex items-center justify-between rounded-lg border p-3">
                           <div>
                             <p className="font-medium">{activity.action}</p>
                             {activity.details && (
@@ -364,7 +364,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
             </Tabs>
           </div>
         ) : (
-          <div className="text-center py-8">
+          <div className="py-8 text-center">
             <p className="text-muted-foreground">Unable to load user details</p>
           </div>
         )}

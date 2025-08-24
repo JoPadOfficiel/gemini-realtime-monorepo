@@ -81,9 +81,9 @@ export function UserRoleManager({
 
   const getRoleIcon = (role: UserRole) => {
     return role === 'ADMIN' ? (
-      <ShieldCheck className="h-4 w-4" />
+      <ShieldCheck className="size-4" />
     ) : (
-      <Shield className="h-4 w-4" />
+      <Shield className="size-4" />
     );
   };
 
@@ -134,7 +134,7 @@ export function UserRoleManager({
                     Are you sure you want to change <strong>{userName}</strong> ({userEmail}) 
                     from <strong>{currentRole}</strong> to <strong>{selectedRole}</strong>?
                     {selectedRole === 'USER' && currentRole === 'ADMIN' && (
-                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                      <div className="mt-2 rounded border border-yellow-200 bg-yellow-50 p-2 text-yellow-800">
                         ⚠️ Warning: This will remove admin privileges from this user.
                       </div>
                     )}

@@ -140,8 +140,8 @@ export function GeminiSessionStats({
       {/* Connection Status */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <StatusIcon className={`h-4 w-4 ${status.color}`} />
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <StatusIcon className={`size-4 ${status.color}`} />
             Session Status
           </CardTitle>
         </CardHeader>
@@ -155,14 +155,14 @@ export function GeminiSessionStats({
             </Badge>
             {isConnected && sessionDuration > 0 && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
+                <Clock className="size-3" />
                 {formatDuration(sessionDuration)}
               </div>
             )}
           </div>
           
           {sessionId && (
-            <div className="mt-3 p-2 bg-muted rounded text-xs font-mono">
+            <div className="mt-3 rounded bg-muted p-2 font-mono text-xs">
               Session: {sessionId.slice(0, 8)}...
             </div>
           )}
@@ -172,12 +172,12 @@ export function GeminiSessionStats({
       {/* Token Usage */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="size-4" />
             Token Usage
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 space-y-3">
+        <CardContent className="space-y-3 pt-0">
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold">
               {tokenUsage.current.toLocaleString()}
@@ -202,12 +202,12 @@ export function GeminiSessionStats({
       {/* Session Metrics */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <TrendingUp className="size-4" />
             Session Metrics
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 space-y-4">
+        <CardContent className="space-y-4 pt-0">
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <div className="text-lg font-bold">{messageCount}</div>
@@ -226,14 +226,14 @@ export function GeminiSessionStats({
       {/* Model Information */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Database className="h-4 w-4" />
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Database className="size-4" />
             Model Info
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-2">
-            <div className="font-medium text-sm">
+            <div className="text-sm font-medium">
               {getModelDisplayName(model)}
             </div>
             <div className="flex items-center gap-2">
