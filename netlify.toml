@@ -1,15 +1,12 @@
 [build]
-  # Build command - create workspace, install dependencies and build web-app with pnpm
-  command = "cd ../.. && cat > pnpm-workspace.yaml << 'EOF'\npackages:\n  - \"apps/*\"\n  - \"packages/*\"\nEOF\nrm -f apps/web-app/pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm --filter saas-starter run build"
+  # Build command for Next.js app in monorepo
+  command = "cat > pnpm-workspace.yaml << 'EOF'\npackages:\n  - \"apps/*\"\n  - \"packages/*\"\nEOF\nrm -f apps/web-app/pnpm-lock.yaml && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm --filter saas-starter run build"
 
-  # Base directory for the build (set to Next.js app for plugin detection)
-  base = "apps/web-app"
+  # Base directory for the build
+  base = "."
 
-  # Publish directory for the web app (relative to base)
-  publish = "."
-
-  # Ignore automatic dependency installation
-  ignore = "/bin/false"
+  # Publish directory for Next.js
+  publish = "apps/web-app"
 
 [build.environment]
   # Node.js version
@@ -29,6 +26,10 @@
 
   # Build optimizations
   NODE_OPTIONS = "--max-old-space-size=4096"
+
+# Plugin configuration for Next.js
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 # Redirect rules for SPA routing
 [[redirects]]
@@ -75,22 +76,3 @@
   for = "/favicon.ico"
   [headers.values]
     Cache-Control = "public, max-age=86400"
-
-# Environment variables template (to be set in Netlify dashboard)
-# NEXTAUTH_URL=https://your-app.netlify.app
-# AUTH_SECRET=your-auth-secret
-# GOOGLE_CLIENT_ID=your-google-client-id
-# GOOGLE_CLIENT_SECRET=your-google-client-secret
-# GITHUB_OAUTH_TOKEN=your-github-token
-# DATABASE_URL=your-database-url
-# RESEND_API_KEY=your-resend-key
-# EMAIL_FROM=your-email
-# STRIPE_API_KEY=your-stripe-key
-# STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
-# NEXT_PUBLIC_APP_URL=https://your-app.netlify.app
-# NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PLAN_ID=your-plan-id
-# NEXT_PUBLIC_STRIPE_PRO_YEARLY_PLAN_ID=your-plan-id
-# NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PLAN_ID=your-plan-id
-# NEXT_PUBLIC_STRIPE_BUSINESS_YEARLY_PLAN_ID=your-plan-id
-
-
