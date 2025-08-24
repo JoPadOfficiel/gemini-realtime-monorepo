@@ -1,0 +1,116 @@
+name: Deploy Applications
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch: # Allow manual deployment
+
+jobs:
+  # Job 1: Deploy Web App to Netlify
+  deploy-web-app:
+    name: Deploy Web App to Netlify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.0.0
+
+      - name: Install dependencies
+        run: |
+          cd apps/web-app
+          pnpm install
+
+      - name: Build web app
+        run: |
+          cd apps/web-app
+          pnpm run build
+        env:
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GITHUB_OAUTH_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PLAN_ID }}
+          NEXT_PUBLIC_STRIPE_PRO_YEARLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PLAN_ID }}
+          NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PLAN_ID }}
+          NEXT_PUBLIC_STRIPE_BUSINESS_YEARLY_PLAN_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_BUSINESS_YEARLY_PLAN_ID }}
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './apps/web-app/.next'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  # Job 2: Deploy Backend to VPS
+  deploy-backend:
+    name: Deploy Backend to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            echo "Starting deployment..."
+
+            # Navigate to deployment directory
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+
+            # Pull latest changes
+            echo "Pulling latest code..."
+            git pull origin main
+
+            # Navigate to backend directory
+            cd apps/gemini-multimodal-playground/backend
+
+            # Install/update Python dependencies
+            echo "Installing Python dependencies..."
+            pip3 install -r requirements.txt
+
+            # Kill existing process (simple approach)
+            echo "Restarting backend service..."
+            pkill -f "python.*main.py" || true
+
+            # Start the backend in background
+            nohup python3 main.py > /tmp/gemini-backend.log 2>&1 &
+
+            echo "Backend deployment completed"
+          EOF
+
+      - name: Health Check
+        run: |
+          echo "Waiting for backend to start..."
+          sleep 15
+          echo "Testing backend health..."
+          curl -f ${{ secrets.VPS_BACKEND_URL }}/health || echo "Health check failed, but deployment completed"

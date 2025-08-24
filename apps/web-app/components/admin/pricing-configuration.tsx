@@ -99,13 +99,13 @@ export default function PricingConfiguration() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <DollarSign className="size-5" />
             Model Pricing Configuration
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-6 w-6 animate-spin" />
+            <RefreshCw className="size-6 animate-spin" />
             <span className="ml-2">Loading pricing configuration...</span>
           </div>
         </CardContent>
@@ -117,7 +117,7 @@ export default function PricingConfiguration() {
     <div className="space-y-6">
       {error && (
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="size-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -125,7 +125,7 @@ export default function PricingConfiguration() {
 
       {success && (
         <Alert>
-          <CheckCircle className="h-4 w-4" />
+          <CheckCircle className="size-4" />
           <AlertTitle>Success</AlertTitle>
           <AlertDescription>{success}</AlertDescription>
         </Alert>
@@ -134,7 +134,7 @@ export default function PricingConfiguration() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <DollarSign className="size-5" />
             Gemini 2.5 Flash Native Audio Pricing
           </CardTitle>
           <CardDescription>
@@ -160,13 +160,13 @@ export default function PricingConfiguration() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-2">
                       <Label htmlFor={`text-input-${model.modelId}`}>
                         Text Input (per 1M tokens)
                       </Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                           $
                         </span>
                         <Input
@@ -186,7 +186,7 @@ export default function PricingConfiguration() {
                         Text Output (per 1M tokens)
                       </Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                           $
                         </span>
                         <Input
@@ -206,7 +206,7 @@ export default function PricingConfiguration() {
                         Audio Input (per 1M tokens)
                       </Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                           $
                         </span>
                         <Input
@@ -227,7 +227,7 @@ export default function PricingConfiguration() {
                         Audio Output (per 1M tokens)
                       </Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                           $
                         </span>
                         <Input
@@ -256,9 +256,9 @@ export default function PricingConfiguration() {
                       className="flex items-center gap-2"
                     >
                       {saving === model.modelId ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <RefreshCw className="size-4 animate-spin" />
                       ) : (
-                        <Save className="h-4 w-4" />
+                        <Save className="size-4" />
                       )}
                       {saving === model.modelId ? 'Saving...' : 'Save Changes'}
                     </Button>

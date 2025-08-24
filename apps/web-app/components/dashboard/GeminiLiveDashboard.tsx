@@ -74,7 +74,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
 
         // Fetch token usage statistics
         try {
-          const tokenResponse = await fetch('http://localhost:8000/api/tokens/stats');
+          const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/tokens/stats`);
           if (tokenResponse.ok) {
             const tokenData = await tokenResponse.json();
             setTokenStats(tokenData);
@@ -95,7 +95,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
 
         // Fetch session statistics
         try {
-          const sessionResponse = await fetch('http://localhost:8000/api/sessions/stats');
+          const sessionResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/sessions/stats`);
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
             setSessionStats(sessionData);
@@ -115,7 +115,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
 
         // Fetch recent activities
         try {
-          const activitiesResponse = await fetch('http://localhost:8000/api/dashboard/activities');
+          const activitiesResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/dashboard/activities`);
           if (activitiesResponse.ok) {
             const activitiesData = await activitiesResponse.json();
             setRecentActivities(activitiesData.activities || []);
@@ -199,13 +199,13 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardContent className="p-6">
                 <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  <div className="mb-2 h-4 w-3/4 rounded bg-gray-200"></div>
+                  <div className="h-8 w-1/2 rounded bg-gray-200"></div>
                 </div>
               </CardContent>
             </Card>
@@ -218,13 +218,13 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             Welcome back, {user?.name || 'User'}!
           </h1>
           <p className="text-muted-foreground">
-            Here's your Gemini Live activity overview
+            Here&apos;s your Gemini Live activity overview
           </p>
         </div>
         <Badge variant="outline" className="text-sm">
@@ -233,11 +233,11 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tokens</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <BarChart3 className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{tokenStats.totalTokens.toLocaleString()}</div>
@@ -250,7 +250,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Sessions</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <Activity className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{sessionStats.totalSessions}</div>
@@ -263,7 +263,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Session</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -278,7 +278,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Messages</CardTitle>
-            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+            <MessageCircle className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{sessionStats.totalMessages}</div>
@@ -293,7 +293,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+            <TrendingUp className="size-5" />
             Monthly Token Usage
           </CardTitle>
         </CardHeader>
@@ -328,25 +328,25 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
+            <Zap className="size-5" />
             Quick Actions
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
                 <Link key={action.title} href={action.href}>
-                  <Card className="cursor-pointer transition-all hover:shadow-md hover:scale-105">
+                  <Card className="cursor-pointer transition-all hover:scale-105 hover:shadow-md">
                     <CardContent className="p-6">
-                      <div className="flex flex-col items-center text-center space-y-4">
-                        <div className={`p-4 rounded-full ${action.color} text-white`}>
-                          <Icon className="h-8 w-8" />
+                      <div className="flex flex-col items-center space-y-4 text-center">
+                        <div className={`rounded-full p-4 ${action.color} text-white`}>
+                          <Icon className="size-8" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-lg">{action.title}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <h3 className="text-lg font-semibold">{action.title}</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">
                             {action.description}
                           </p>
                         </div>
@@ -367,7 +367,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+            <Calendar className="size-5" />
             Recent Activity
             {recentActivities.length > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -378,7 +378,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
         </CardHeader>
         <CardContent>
           {recentActivities.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="py-8 text-center">
               <div className="text-muted-foreground">No recent activities</div>
             </div>
           ) : (
@@ -413,9 +413,9 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
                 const { icon: Icon, color, bg } = getActivityIcon(activity.type);
 
                 return (
-                  <div key={index} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+                  <div key={index} className="flex items-center gap-4 rounded-lg bg-muted p-3">
                     <div className={`p-2 ${bg} rounded-full`}>
-                      <Icon className={`h-4 w-4 ${color}`} />
+                      <Icon className={`size-4 ${color}`} />
                     </div>
                     <div className="flex-1">
                       <div className="font-medium">{activity.description}</div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -60,16 +60,11 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Load user settings on component mount
-  useEffect(() => {
-    loadUserSettings();
-  }, [userId]);
-
-  const loadUserSettings = async () => {
+  const loadUserSettings = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8000/api/users/${userId}/settings`);
-      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/users/${userId}/settings`);
+
       if (response.ok) {
         const data = await response.json();
         setSettings(data);
@@ -84,7 +79,12 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Load user settings on component mount
+  useEffect(() => {
+    loadUserSettings();
+  }, [userId, loadUserSettings]);
 
   const saveUserSettings = async () => {
     try {
@@ -92,7 +92,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
       setError(null);
       setSuccess(null);
 
-      const response = await fetch(`http://localhost:8000/api/users/${userId}/settings`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/users/${userId}/settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,9 +137,9 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center h-64">
+        <CardContent className="flex h-64 items-center justify-center">
           <div className="text-center">
-            <Settings className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <Settings className="mx-auto mb-2 size-8 animate-spin" />
             <p>Loading settings...</p>
           </div>
         </CardContent>
@@ -151,7 +151,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
+          <Settings className="size-5" />
           User Settings
           <Badge variant="secondary" className="text-xs">
             Configurable by User
@@ -161,7 +161,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
       <CardContent className="space-y-6">
         {error && (
           <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
+            <AlertTriangle className="size-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -169,7 +169,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
 
         {success && (
           <Alert>
-            <CheckCircle className="h-4 w-4" />
+            <CheckCircle className="size-4" />
             <AlertTitle>Success</AlertTitle>
             <AlertDescription>{success}</AlertDescription>
           </Alert>
@@ -178,7 +178,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
         {/* Voice Selection */}
         <div className="space-y-2">
           <Label htmlFor="voice-select" className="flex items-center gap-2">
-            <Volume2 className="h-4 w-4" />
+            <Volume2 className="size-4" />
             Voice Selection
           </Label>
           <Select
@@ -197,14 +197,14 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Choose the voice for Gemini's audio responses
+            Choose the voice for Gemini&apos;s audio responses
           </p>
         </div>
 
         {/* Language Selection */}
         <div className="space-y-2">
           <Label htmlFor="language-select" className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
+            <Globe className="size-4" />
             Language
           </Label>
           <Select
@@ -234,7 +234,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="proactive-audio" className="flex items-center gap-2">
-                <Volume2 className="h-4 w-4" />
+                <Volume2 className="size-4" />
                 Proactive Audio
               </Label>
               <p className="text-xs text-muted-foreground">
@@ -251,7 +251,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="affective-dialog" className="flex items-center gap-2">
-                <Brain className="h-4 w-4" />
+                <Brain className="size-4" />
                 Affective Dialog
               </Label>
               <p className="text-xs text-muted-foreground">
@@ -268,7 +268,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="vad" className="flex items-center gap-2">
-                <Mic className="h-4 w-4" />
+                <Mic className="size-4" />
                 Voice Activity Detection
               </Label>
               <p className="text-xs text-muted-foreground">
@@ -290,7 +290,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="google-search" className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
+                <Search className="size-4" />
                 Google Search Integration
               </Label>
               <p className="text-xs text-muted-foreground">
@@ -306,7 +306,7 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between border-t pt-4">
           <Button
             variant="outline"
             onClick={resetToDefaults}
@@ -321,9 +321,9 @@ export function GeminiUserSettings({ userId = 'default-user', onSettingsChange }
             className="flex items-center gap-2"
           >
             {isSaving ? (
-              <Settings className="h-4 w-4 animate-spin" />
+              <Settings className="size-4 animate-spin" />
             ) : (
-              <Save className="h-4 w-4" />
+              <Save className="size-4" />
             )}
             {isSaving ? 'Saving...' : 'Save Settings'}
           </Button>

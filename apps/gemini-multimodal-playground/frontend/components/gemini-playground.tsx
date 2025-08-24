@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { base64ToFloat32Array, float32ToPcm16, GeminiApiService } from '@/lib/utils';
 
 // Configuration constants
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000';
 
 const MODELS = [
   {

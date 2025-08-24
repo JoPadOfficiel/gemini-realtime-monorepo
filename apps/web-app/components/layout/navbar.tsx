@@ -106,20 +106,18 @@ export function NavBar({ scroll = false }: NavBarProps) {
               className="hidden md:block"
             >
               <Button
-                className="gap-2 px-5"
+                className="gap-2 rounded-full px-5"
                 variant="default"
                 size="sm"
-                rounded="full"
               >
                 <span>Dashboard</span>
               </Button>
             </Link>
           ) : status === "unauthenticated" ? (
             <Button
-              className="hidden gap-2 px-5 md:flex"
+              className="hidden gap-2 rounded-full px-5 md:flex"
               variant="default"
               size="sm"
-              rounded="full"
               onClick={() => setShowSignInModal(true)}
             >
               <span>Sign In</span>

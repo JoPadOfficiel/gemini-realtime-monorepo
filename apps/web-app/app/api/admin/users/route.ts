@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUser();
 
     // 🔒 SECURITY: Only admins can create users
-    if (!user || user.role !== 'ADMIN') {
+    if (!user?.id || user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

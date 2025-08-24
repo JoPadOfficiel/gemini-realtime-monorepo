@@ -53,7 +53,7 @@ export function ModelConfiguration() {
 
   const loadModels = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/models');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/models`);
       if (response.ok) {
         const data = await response.json();
         setModels(data.models || []);
@@ -84,7 +84,7 @@ export function ModelConfiguration() {
 
   const loadUserModelAccess = async (userId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/models`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/users/${userId}/models`);
       if (response.ok) {
         const data = await response.json();
         setUserModelAccess(data.model_access || []);
@@ -99,7 +99,7 @@ export function ModelConfiguration() {
 
   const updateModelConfig = async (model: Model) => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/models', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/models`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export function ModelConfiguration() {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${selectedUser}/models`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/users/${selectedUser}/models`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,8 +177,8 @@ export function ModelConfiguration() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin" />
+        <CardContent className="flex h-64 items-center justify-center">
+          <RefreshCw className="size-8 animate-spin" />
         </CardContent>
       </Card>
     );
@@ -188,7 +188,7 @@ export function ModelConfiguration() {
     <div className="space-y-6">
       {error && (
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="size-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -196,7 +196,7 @@ export function ModelConfiguration() {
 
       {success && (
         <Alert>
-          <CheckCircle className="h-4 w-4" />
+          <CheckCircle className="size-4" />
           <AlertTitle>Success</AlertTitle>
           <AlertDescription>{success}</AlertDescription>
         </Alert>
@@ -205,7 +205,7 @@ export function ModelConfiguration() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+            <Settings className="size-5" />
             Model Configuration
           </CardTitle>
         </CardHeader>
@@ -286,7 +286,7 @@ export function ModelConfiguration() {
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">Model Access for {users.find(u => u.id === selectedUser)?.name}</h3>
                       <Button onClick={updateUserModelAccess}>
-                        <Save className="h-4 w-4 mr-2" />
+                        <Save className="mr-2 size-4" />
                         Save Changes
                       </Button>
                     </div>

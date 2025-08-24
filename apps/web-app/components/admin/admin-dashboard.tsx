@@ -170,11 +170,11 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Users</p>
                 <p className="text-3xl font-bold">{stats.overview?.totalUsers || 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {stats.overview?.activeUsers || 0} active
                 </p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="size-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -185,12 +185,12 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">New This Month</p>
                 <p className="text-3xl font-bold">{stats.overview?.newUsersThisMonth || 0}</p>
-                <p className="text-xs text-green-600 mt-1">
-                  <TrendingUp className="h-3 w-3 inline mr-1" />
+                <p className="mt-1 text-xs text-green-600">
+                  <TrendingUp className="mr-1 inline size-3" />
                   Growth
                 </p>
               </div>
-              <UserPlus className="h-8 w-8 text-green-500" />
+              <UserPlus className="size-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -201,11 +201,11 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Monthly Tokens</p>
                 <p className="text-3xl font-bold">{(stats.overview?.monthlyTokens || 0).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {stats.overview?.totalSessions || 0} sessions
                 </p>
               </div>
-              <Zap className="h-8 w-8 text-yellow-500" />
+              <Zap className="size-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
@@ -216,22 +216,22 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Cost</p>
                 <p className="text-3xl font-bold">{formatCurrency(stats.overview?.totalCost || 0)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {(stats.overview?.totalTokens || 0).toLocaleString()} tokens
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-500" />
+              <DollarSign className="size-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Usage by Model Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
+              <Bot className="size-5" />
               Usage by Model
             </CardTitle>
             <CardDescription>
@@ -251,9 +251,9 @@ export default function AdminDashboard() {
                   return (
                     <div key={modelKey} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <div className="size-2 rounded-full bg-blue-500" />
                         <div>
-                          <p className="font-medium text-sm">{modelName}</p>
+                          <p className="text-sm font-medium">{modelName}</p>
                           <p className="text-xs text-muted-foreground">
                             {sessionCount} sessions
                           </p>
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
                   );
                 })
               ) : (
-                <div className="text-center py-4">
+                <div className="py-4 text-center">
                   <p className="text-sm text-muted-foreground">No model usage data</p>
                 </div>
               )}
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
+              <Activity className="size-5" />
               Recent Activity
             </CardTitle>
             <CardDescription>
@@ -297,9 +297,9 @@ export default function AdminDashboard() {
                   const dateText = activity.createdAt ? formatDate(activity.createdAt) : 'Unknown date';
 
                   return (
-                    <div key={activityId} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
-                      <div className="w-2 h-2 rounded-full bg-green-500 mt-2" />
-                      <div className="flex-1 min-w-0">
+                    <div key={activityId} className="flex items-start gap-3 rounded-lg p-2 hover:bg-muted/50">
+                      <div className="mt-2 size-2 rounded-full bg-green-500" />
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{actionText}</p>
                         <p className="text-xs text-muted-foreground">{userName}</p>
                         <p className="text-xs text-muted-foreground">{dateText}</p>
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
                   );
                 })
               ) : (
-                <div className="text-center py-4">
+                <div className="py-4 text-center">
                   <p className="text-sm text-muted-foreground">No recent activities</p>
                 </div>
               )}
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+            <Calendar className="size-5" />
             Daily Usage (Last 30 Days)
           </CardTitle>
           <CardDescription>
@@ -376,9 +376,9 @@ export default function AdminDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg">
+            <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25">
               <div className="text-center">
-                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
+                <TrendingUp className="mx-auto mb-2 size-12 text-muted-foreground/50" />
                 <p className="text-muted-foreground">No usage data available</p>
                 <p className="text-sm text-muted-foreground">
                   Data will appear as users interact with the platform
