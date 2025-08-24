@@ -114,6 +114,8 @@ export async function GET() {
 
     dailyUsageData.forEach((usage) => {
       const dateStr = usage.createdAt.toISOString().split('T')[0];
+      if (!dateStr) return; // Safety check
+
       const existing = dailyUsageMap.get(dateStr) || { tokens: 0, sessions: new Set<string>() };
       existing.tokens += usage.totalTokens || 0;
       if (usage.sessionId) {
