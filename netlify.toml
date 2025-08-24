@@ -1,6 +1,6 @@
 [build]
   # Build command - install dependencies and build web-app with npm
-  command = "cd apps/web-app && npm install && npm run build"
+  command = "cd apps/web-app && npm install --legacy-peer-deps && npm run build"
 
   # Publish directory for the web app
   publish = "apps/web-app/.next"
@@ -13,9 +13,6 @@
   NODE_VERSION = "20"
 
   # Disable Next.js telemetry
-  NEXT_TELEMETRY_DISABLED = "1"
-  
-  # Next.js optimizations
   NEXT_TELEMETRY_DISABLED = "1"
   
   # Build optimizations
