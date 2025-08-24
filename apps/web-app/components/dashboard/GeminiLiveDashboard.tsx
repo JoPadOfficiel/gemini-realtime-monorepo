@@ -74,7 +74,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
 
         // Fetch token usage statistics
         try {
-          const tokenResponse = await fetch('http://localhost:8000/api/tokens/stats');
+          const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/tokens/stats`);
           if (tokenResponse.ok) {
             const tokenData = await tokenResponse.json();
             setTokenStats(tokenData);
@@ -95,7 +95,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
 
         // Fetch session statistics
         try {
-          const sessionResponse = await fetch('http://localhost:8000/api/sessions/stats');
+          const sessionResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/sessions/stats`);
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
             setSessionStats(sessionData);
@@ -115,7 +115,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
 
         // Fetch recent activities
         try {
-          const activitiesResponse = await fetch('http://localhost:8000/api/dashboard/activities');
+          const activitiesResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/dashboard/activities`);
           if (activitiesResponse.ok) {
             const activitiesData = await activitiesResponse.json();
             setRecentActivities(activitiesData.activities || []);
@@ -224,7 +224,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
             Welcome back, {user?.name || 'User'}!
           </h1>
           <p className="text-muted-foreground">
-            Here's your Gemini Live activity overview
+            Here&apos;s your Gemini Live activity overview
           </p>
         </div>
         <Badge variant="outline" className="text-sm">

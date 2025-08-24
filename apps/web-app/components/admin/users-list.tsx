@@ -37,6 +37,7 @@ import { UserRoleManager } from './user-role-manager';
 const truncateEmail = (email: string, maxLength: number = 20) => {
   if (email.length <= maxLength) return email;
   const [localPart, domain] = email.split('@');
+  if (!localPart || !domain) return email; // Safety check for invalid email format
   if (localPart.length > maxLength - 3) {
     return `${localPart.substring(0, maxLength - 3)}...@${domain}`;
   }

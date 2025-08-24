@@ -53,7 +53,7 @@ export function ModelConfiguration() {
 
   const loadModels = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/models');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/models`);
       if (response.ok) {
         const data = await response.json();
         setModels(data.models || []);
@@ -84,7 +84,7 @@ export function ModelConfiguration() {
 
   const loadUserModelAccess = async (userId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/models`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/users/${userId}/models`);
       if (response.ok) {
         const data = await response.json();
         setUserModelAccess(data.model_access || []);
@@ -99,7 +99,7 @@ export function ModelConfiguration() {
 
   const updateModelConfig = async (model: Model) => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/models', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/models`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export function ModelConfiguration() {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/users/${selectedUser}/models`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/users/${selectedUser}/models`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

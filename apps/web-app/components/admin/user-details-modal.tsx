@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -110,20 +110,14 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && userId) {
-      fetchUserStats();
-    }
-  }, [isOpen, userId]);
-
-  const fetchUserStats = async () => {
+  const fetchUserStats = useCallback(async () => {
     if (!userId) return;
-    
+
     setLoading(true);
     try {
       const response = await fetch(`/api/admin/users/${userId}/stats`);
       if (!response.ok) throw new Error('Failed to fetch user stats');
-      
+
       const data = await response.json();
       setUserStats(data);
     } catch (error) {
@@ -132,7 +126,13 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (isOpen && userId) {
+      fetchUserStats();
+    }
+  }, [isOpen, userId, fetchUserStats]);
 
 
 
@@ -206,7 +206,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-blue-500" />
                     <div>
-                      <p className="text-2xl font-bold">{userStats.stats.totalTokens.toLocaleString()}</p>
+                      <p className="text-2xl font-bold">{userStats.summary.totalTokens.toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">Tokens used</p>
                     </div>
                   </div>
@@ -218,31 +218,31 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   <div className="flex items-center gap-2">
                     <Coins className="h-4 w-4 text-green-500" />
                     <div>
-                      <p className="text-2xl font-bold">{formatCurrency(userStats.stats.totalCost)}</p>
+                      <p className="text-2xl font-bold">{formatCurrency(userStats.summary.totalCost)}</p>
                       <p className="text-xs text-muted-foreground">Total cost</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-purple-500" />
                     <div>
-                      <p className="text-2xl font-bold">{userStats.stats.sessionCount}</p>
+                      <p className="text-2xl font-bold">{userStats.summary.totalSessions}</p>
                       <p className="text-xs text-muted-foreground">Sessions</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-orange-500" />
                     <div>
-                      <p className="text-2xl font-bold">{userStats.stats.activityCount}</p>
+                      <p className="text-2xl font-bold">{userStats.summary.totalActivities}</p>
                       <p className="text-xs text-muted-foreground">Activities</p>
                     </div>
                   </div>
@@ -279,7 +279,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {userStats.recentTokenUsage?.map((usage) => (
+                          {userStats.user.tokenUsages?.map((usage) => (
                             <TableRow key={usage.id}>
                               <TableCell className="text-sm">{formatDate(usage.createdAt)}</TableCell>
                               <TableCell className="text-sm">
@@ -342,7 +342,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {userStats.recentActivities?.map((activity) => (
+                      {userStats.user.userActivities?.map((activity) => (
                         <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
                             <p className="font-medium">{activity.action}</p>

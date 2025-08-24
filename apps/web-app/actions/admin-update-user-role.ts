@@ -15,7 +15,7 @@ export async function adminUpdateUserRole(targetUserId: string, data: AdminFormD
   try {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       throw new Error("Unauthorized - No session");
     }
 
