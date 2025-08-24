@@ -94,7 +94,8 @@ jobs:
               git sparse-checkout set apps/gemini-multimodal-playground/backend
             else
               echo "Updating existing repository..."
-              git pull origin main
+              git fetch origin main
+              git reset --hard origin/main
             fi
 
             # Navigate to backend directory
