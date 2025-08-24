@@ -1,6 +1,6 @@
 [build]
   # Build command - install dependencies and build web-app with pnpm
-  command = "cd apps/web-app && pnpm install --no-frozen-lockfile && pnpm run build"
+  command = "cd apps/web-app && pnpm install --no-frozen-lockfile --shamefully-hoist && pnpm run build"
 
   # Publish directory for the web app
   publish = "apps/web-app/.next"
@@ -8,12 +8,21 @@
   # Base directory for the build
   base = "."
 
+  # Ignore automatic dependency installation
+  ignore = "/bin/false"
+
 [build.environment]
   # Node.js version
   NODE_VERSION = "20"
 
   # PNPM version
   PNPM_VERSION = "9"
+
+  # PNPM flags for monorepo compatibility
+  PNPM_FLAGS = "--shamefully-hoist"
+
+  # Disable automatic dependency installation
+  NETLIFY_SKIP_INSTALL = "true"
 
   # Disable Next.js telemetry
   NEXT_TELEMETRY_DISABLED = "1"
