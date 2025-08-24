@@ -1,0 +1,86 @@
+[build]
+  # Build command for the web-app only
+  command = "cd apps/web-app && pnpm install && pnpm run build"
+
+  # Publish directory for the web app
+  publish = "apps/web-app/.next"
+
+  # Base directory for the build
+  base = "."
+
+[build.environment]
+  # Node.js version
+  NODE_VERSION = "18"
+  
+  # Package manager
+  NPM_FLAGS = "--version"
+  PNPM_VERSION = "9.0.0"
+  
+  # Next.js optimizations
+  NEXT_TELEMETRY_DISABLED = "1"
+  
+  # Build optimizations
+  NODE_OPTIONS = "--max-old-space-size=4096"
+
+# Redirect rules for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# API routes handling
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Gemini Live routes
+[[redirects]]
+  from = "/dashboard/gemini-live/*"
+  to = "/dashboard/gemini-live/index.html"
+  status = 200
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/dashboard/gemini-live/*"
+  [headers.values]
+    # Allow camera and microphone for Gemini Live features
+    Permissions-Policy = "camera=(self), microphone=(self), geolocation=()"
+
+# Cache optimization
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/favicon.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# Environment variables template (to be set in Netlify dashboard)
+# NEXTAUTH_URL=https://your-app.netlify.app
+# AUTH_SECRET=your-auth-secret
+# GOOGLE_CLIENT_ID=your-google-client-id
+# GOOGLE_CLIENT_SECRET=your-google-client-secret
+# GITHUB_OAUTH_TOKEN=your-github-token
+# DATABASE_URL=your-database-url
+# RESEND_API_KEY=your-resend-key
+# EMAIL_FROM=your-email
+# STRIPE_API_KEY=your-stripe-key
+# STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+# NEXT_PUBLIC_APP_URL=https://your-app.netlify.app
+# NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PLAN_ID=your-plan-id
+# NEXT_PUBLIC_STRIPE_PRO_YEARLY_PLAN_ID=your-plan-id
+# NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PLAN_ID=your-plan-id
+# NEXT_PUBLIC_STRIPE_BUSINESS_YEARLY_PLAN_ID=your-plan-id
