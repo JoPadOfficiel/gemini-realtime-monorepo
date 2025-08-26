@@ -84,6 +84,36 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
   // API service instance
   const apiService = GeminiApiService.getInstance();
 
+  // Load user settings on component mount
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/users/${user.id}/settings`);
+        if (response.ok) {
+          const userSettings = await response.json();
+          console.log('🔧 Loading user settings for screen share:', userSettings);
+
+          // Update config with user settings
+          setConfig(prev => ({
+            ...prev,
+            voice: userSettings.voice || prev.voice,
+            language: userSettings.language || prev.language,
+            enableProactiveAudio: userSettings.enable_proactive_audio ?? prev.enableProactiveAudio,
+            enableAffectiveDialog: userSettings.enable_affective_dialog ?? prev.enableAffectiveDialog,
+            enableVAD: userSettings.enable_vad ?? prev.enableVAD,
+            googleSearch: userSettings.enable_google_search ?? prev.googleSearch
+          }));
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to load user settings for screen share:', error);
+      }
+    };
+
+    loadUserSettings();
+  }, [user?.id]);
+
   // Start screen sharing
   const startScreenShare = useCallback(async () => {
     try {
@@ -121,17 +151,37 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
 
       streamRef.current = combinedStream;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = screenStream; // Only show screen video
+      // Set screen sharing state FIRST so video element exists
+      setIsScreenSharing(true);
+      console.log('🎥 Screen sharing state set to true');
 
-        // Start frame capture after video is loaded
-        videoRef.current.onloadedmetadata = () => {
-          // Start capturing frames every second for Gemini analysis
-          videoIntervalRef.current = setInterval(() => {
-            captureAndSendFrame();
-          }, 1000);
-        };
-      }
+      // Wait for next tick to ensure video element is rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = screenStream; // Only show screen video
+          console.log('🎥 Video element srcObject set:', screenStream);
+
+          // Start frame capture after video is loaded
+          videoRef.current.onloadedmetadata = () => {
+            console.log('🎥 Video metadata loaded, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+            // Start capturing frames every second for Gemini analysis
+            videoIntervalRef.current = setInterval(() => {
+              captureAndSendFrame();
+            }, 1000);
+          };
+
+          // Add additional event listeners for debugging
+          videoRef.current.oncanplay = () => {
+            console.log('🎥 Video can play');
+          };
+
+          videoRef.current.onplaying = () => {
+            console.log('🎥 Video is playing');
+          };
+        } else {
+          console.error('🎥 Video element still not available after state update');
+        }
+      }, 100);
 
       // Handle screen share end
       const videoTrack = screenStream.getVideoTracks()[0];
@@ -143,7 +193,6 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
         });
       }
 
-      setIsScreenSharing(true);
       return combinedStream;
     } catch (error) {
       console.error('Error accessing screen/microphone:', error);
@@ -240,26 +289,70 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
 
   // Frame capture function for screen share analysis
   const captureAndSendFrame = useCallback(() => {
-    if (!canvasRef.current || !videoRef.current || !wsRef.current) return;
+    if (!canvasRef.current || !videoRef.current || !wsRef.current) {
+      console.log('🖼️ Missing refs for frame capture:', {
+        canvas: !!canvasRef.current,
+        video: !!videoRef.current,
+        ws: !!wsRef.current
+      });
+      return;
+    }
+    if (wsRef.current.readyState !== WebSocket.OPEN) {
+      console.log('🖼️ WebSocket not open for frame capture');
+      return;
+    }
 
-    const context = canvasRef.current.getContext('2d');
-    if (!context) return;
+    try {
+      const context = canvasRef.current.getContext('2d');
+      if (!context) {
+        console.log('🖼️ No canvas context available');
+        return;
+      }
 
-    // Set canvas dimensions to match video
-    canvasRef.current.width = videoRef.current.videoWidth;
-    canvasRef.current.height = videoRef.current.videoHeight;
+      // Check if video has valid dimensions
+      if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+        // Only log once to avoid spam
+        if (!videoRef.current.dataset.dimensionLogged) {
+          console.log('🖼️ Video has no dimensions yet:', {
+            width: videoRef.current.videoWidth,
+            height: videoRef.current.videoHeight
+          });
+          videoRef.current.dataset.dimensionLogged = 'true';
+        }
+        return;
+      }
 
-    // Draw current video frame to canvas
-    context.drawImage(videoRef.current, 0, 0);
+      // Set canvas dimensions to match video
+      canvasRef.current.width = videoRef.current.videoWidth;
+      canvasRef.current.height = videoRef.current.videoHeight;
 
-    // Convert canvas to base64 image
-    const base64Image = canvasRef.current.toDataURL('image/jpeg').split(',')[1];
+      // Draw current video frame to canvas
+      context.drawImage(videoRef.current, 0, 0);
 
-    // Send image data to Gemini via WebSocket
-    wsRef.current.send(JSON.stringify({
-      type: 'image',
-      data: base64Image
-    }));
+      // Convert canvas to base64 image
+      const base64Image = canvasRef.current.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+      if (!base64Image) {
+        console.log('🖼️ Failed to generate base64 image');
+        return;
+      }
+
+      // Log only first successful capture
+      if (videoRef.current.videoWidth > 0) {
+        console.log('🖼️ Frame capture successful:', {
+          dimensions: `${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`,
+          dataSize: base64Image.length
+        });
+      }
+
+      // Send image data to Gemini via WebSocket
+      wsRef.current.send(JSON.stringify({
+        type: 'image',
+        data: base64Image
+      }));
+    } catch (error) {
+      console.error('🖼️ Error capturing frame:', error);
+    }
   }, []);
 
   // Start streaming session
@@ -267,9 +360,12 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
     try {
       setError(null);
       setIsStreaming(true);
-      
+
       // Start screen sharing
-      await startScreenShare();
+      const stream = await startScreenShare();
+      if (!stream) {
+        throw new Error('Failed to start screen sharing');
+      }
       
       // Initialize audio context for processing
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
@@ -285,7 +381,15 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
           if (wsRef.current?.readyState === WebSocket.OPEN) {
             const inputData = e.inputBuffer.getChannelData(0);
             const pcmData = float32ToPcm16(inputData);
-            const base64Data = btoa(String.fromCharCode(...new Uint8Array(pcmData.buffer)));
+
+            // Convert to base64 using a more robust method
+            const uint8Array = new Uint8Array(pcmData.buffer);
+            let binaryString = '';
+            for (let i = 0; i < uint8Array.length; i++) {
+              binaryString += String.fromCharCode(uint8Array[i] || 0);
+            }
+            const base64Data = btoa(binaryString);
+
             wsRef.current.send(JSON.stringify({
               type: 'audio',
               data: base64Data
@@ -307,11 +411,14 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
         console.log('WebSocket connected for screen sharing');
         setIsConnected(true);
 
-        // Send configuration
+        // Send configuration with user_id
         if (wsRef.current) {
           wsRef.current.send(JSON.stringify({
             type: 'config',
-            config: config
+            config: {
+              ...config,
+              user_id: user?.id || 'default-user'
+            }
           }));
         }
 
@@ -327,35 +434,70 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
       };
       
       wsRef.current.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
+        const response = JSON.parse(event.data);
 
-        if (data.type === 'user_transcription') {
-          setCurrentUserMessage(data.content);
-        } else if (data.type === 'assistant_transcription') {
-          setCurrentAssistantMessage(data.content);
-        } else if (data.type === 'thinking') {
-          setCurrentThinking(data.content);
-        } else if (data.type === 'conversation_update') {
-          setConversation(prev => [...prev, data.message]);
-          setCurrentUserMessage('');
-          setCurrentAssistantMessage('');
-          setCurrentThinking('');
-        } else if (data.type === 'token_count') {
-          setTokenCount(data.count);
-        } else if (data.type === 'audio') {
+        if (response.type === 'audio') {
           // Handle audio response from Gemini
           try {
-            const audioData = base64ToFloat32Array(data.data);
+            const audioData = base64ToFloat32Array(response.data);
             await playAudioData(audioData);
           } catch (error) {
             console.error('Error playing audio:', error);
           }
-        } else if (data.type === 'interruption' || data.interrupted) {
-          // Handle interruption - immediately stop audio playback
+        } else if (response.type === 'text') {
+          // Handle text fragments from Gemini
+          const textData = response.data || response.text || '';
+          setCurrentAssistantMessage(prev => prev + textData);
+        } else if (response.type === 'thinking') {
+          // Handle thinking fragments from Gemini
+          const thinkingData = response.data || '';
+          if (thinkingData.trim()) {
+            setConversation(prev => [...prev, {
+              role: 'assistant',
+              content: thinkingData.trim(),
+              type: 'thinking',
+              timestamp: new Date()
+            }]);
+          }
+        } else if (response.type === 'user_message') {
+          // Add complete user message from accumulated transcription
+          const messageData = response.data || '';
+          if (messageData.trim()) {
+            setConversation(prev => [...prev, {
+              role: 'user',
+              content: messageData.trim(),
+              timestamp: new Date()
+            }]);
+          }
+        } else if (response.type === 'assistant_message') {
+          // Add complete assistant message from accumulated transcription
+          const messageData = response.data || '';
+          if (messageData.trim()) {
+            setConversation(prev => [...prev, {
+              role: 'assistant',
+              content: messageData.trim(),
+              timestamp: new Date()
+            }]);
+          }
+        } else if (response.type === 'interruption' || response.interrupted) {
+          // Handle interruption - immediately stop audio playbook
           console.log('🔴 INTERRUPTION RECEIVED - Stopping audio playback');
           stopCurrentAudio();
-        } else if (data.type === 'error') {
-          setError(data.message);
+        } else if (response.type === 'turn_complete') {
+          // When turn is complete, add any remaining accumulated text
+          if (currentAssistantMessage.trim()) {
+            setConversation(prev => [...prev, {
+              role: 'assistant',
+              content: currentAssistantMessage.trim(),
+              timestamp: new Date()
+            }]);
+            setCurrentAssistantMessage(''); // Reset for next message
+          }
+          setCurrentUserMessage(''); // Clear user message state
+        } else if (response.type === 'token_count') {
+          setTokenCount(response.count);
+        } else if (response.type === 'error') {
+          setError(response.message || 'An error occurred');
         }
       };
       
@@ -456,9 +598,9 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
       <GeminiSettingsPopup
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        userId="default-user"
+        userId={user?.id || 'default-user'}
         onSettingsChange={(settings) => {
-          console.log('Settings updated:', settings);
+          console.log('Screen share settings updated:', settings);
           // Update config with new settings
           setConfig(prev => ({
             ...prev,
@@ -491,44 +633,53 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             <CardContent className="space-y-4">
               {/* Compact Screen Display */}
               <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="size-full object-contain"
-                />
-                <canvas
-                  ref={canvasRef}
-                  className="hidden"
-                  width={640}
-                  height={480}
-                />
+                {isScreenSharing ? (
+                  <>
+                    <div className="flex h-full items-center justify-center">
+                      <div className="text-center">
+                        <Monitor className="mx-auto mb-2 size-8 text-green-500" />
+                        <p className="text-xs text-green-500">
+                          Screen sharing active
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          View on desktop for preview
+                        </p>
+                      </div>
+                    </div>
 
-                {/* Compact overlay controls */}
-                {isStreaming && (
-                  <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1">
-                    <Button
-                      onClick={toggleMicrophone}
-                      variant={isMicEnabled ? "default" : "destructive"}
-                      size="sm"
-                      className="size-6 rounded-full p-0"
-                    >
-                      {isMicEnabled ? (
-                        <Mic className="size-3" />
-                      ) : (
-                        <MicOff className="size-3" />
-                      )}
-                    </Button>
+                    {/* Compact overlay controls */}
+                    <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1">
+                      <Button
+                        onClick={toggleMicrophone}
+                        variant={isMicEnabled ? "default" : "destructive"}
+                        size="sm"
+                        className="size-6 rounded-full p-0"
+                      >
+                        {isMicEnabled ? (
+                          <Mic className="size-3" />
+                        ) : (
+                          <MicOff className="size-3" />
+                        )}
+                      </Button>
 
-                    <Button
-                      onClick={stopStream}
-                      variant="destructive"
-                      size="sm"
-                      className="size-6 rounded-full p-0"
-                    >
-                      <StopCircle className="size-3" />
-                    </Button>
+                      <Button
+                        onClick={stopStream}
+                        variant="destructive"
+                        size="sm"
+                        className="size-6 rounded-full p-0"
+                      >
+                        <StopCircle className="size-3" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-center">
+                      <Monitor className="mx-auto mb-2 size-8 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        No screen shared
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -651,6 +802,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
             <CardContent className="space-y-4">
               {/* Compact Screen Display */}
               <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
+
                 {isScreenSharing ? (
                   <>
                     <video
