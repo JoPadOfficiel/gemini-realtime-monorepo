@@ -47,36 +47,64 @@ class AsyncMemoryQueue:
     
     def __init__(self):
         self.tasks: Dict[str, MemoryTask] = {}
-        self.processing_queue = asyncio.Queue()
+        self.processing_queue = None  # Will be created in the event loop
         self.worker_running = False
+        self.worker_task = None  # Track the worker task
         self.mem0_client = None
+        self._loop = None  # Track the event loop
         
     async def initialize(self, memory_manager):
         """Initialize the async memory queue with Mem0 memory manager"""
+        # Get current event loop
+        current_loop = asyncio.get_running_loop()
+
+        # Only initialize if we're in a new loop or first time
+        if self._loop is None or self._loop != current_loop:
+            self._loop = current_loop
+            self.processing_queue = asyncio.Queue()
+            self.worker_running = False
+            self.worker_task = None
+            logger.info("✅ Created asyncio.Queue in current event loop")
+
         # Extract the actual Mem0 client from the memory manager
         self.mem0_client = getattr(memory_manager, 'client', None)
         if not self.mem0_client:
             raise ValueError("Memory manager does not have a valid Mem0 client")
 
+        # Start worker only once per event loop
         if not self.worker_running:
             try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(self._worker())
+                self.worker_task = asyncio.create_task(self._worker())
                 self.worker_running = True
-                logger.info("🚀 Async Memory Queue initialized and worker started")
-            except RuntimeError:
-                # No event loop running, worker will be started when first task is queued
-                logger.info("🚀 Async Memory Queue initialized, worker will start when needed")
+                logger.info("🚀 Async Memory Worker started in current event loop")
+            except Exception as e:
+                logger.error(f"❌ Failed to start worker: {e}")
 
     async def _ensure_worker_running(self):
         """Ensure the worker is running in the current event loop"""
+        current_loop = asyncio.get_running_loop()
+
+        # Check if we're in the same loop and worker is still running
+        if (self._loop == current_loop and
+            self.worker_running and
+            self.worker_task and
+            not self.worker_task.done()):
+            return  # Worker is already running in current loop
+
+        # Re-initialize for new loop or if worker died
+        if self._loop != current_loop or self.processing_queue is None:
+            self._loop = current_loop
+            self.processing_queue = asyncio.Queue()
+            self.worker_running = False
+            self.worker_task = None
+            logger.info("✅ Re-created asyncio.Queue for new event loop")
+
         if not self.worker_running:
             try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(self._worker())
+                self.worker_task = asyncio.create_task(self._worker())
                 self.worker_running = True
-                logger.info("🚀 Async Memory Worker started")
-            except RuntimeError as e:
+                logger.info("🚀 Async Memory Worker restarted")
+            except Exception as e:
                 logger.error(f"❌ Failed to start worker: {e}")
 
     async def queue_memory_save(self, session_id: str, messages: List[Dict]) -> str:
@@ -99,6 +127,12 @@ class AsyncMemoryQueue:
         )
 
         self.tasks[task_id] = task
+
+        # Safety check: ensure queue exists
+        if self.processing_queue is None:
+            logger.error("❌ Processing queue is None, cannot queue task")
+            return task_id
+
         await self.processing_queue.put(task_id)
 
         logger.info(f"📝 Memory save queued for session {session_id[:8]}... (task: {task_id[:8]}...)")
@@ -148,9 +182,14 @@ class AsyncMemoryQueue:
     async def _worker(self):
         """Background worker to process memory operations"""
         logger.info("🔄 Async Memory Worker started")
-        
+
         while True:
             try:
+                # Safety check: ensure queue exists
+                if self.processing_queue is None:
+                    logger.error("❌ Processing queue is None in worker, exiting")
+                    break
+
                 # Wait for next task
                 task_id = await self.processing_queue.get()
                 task = self.tasks.get(task_id)
