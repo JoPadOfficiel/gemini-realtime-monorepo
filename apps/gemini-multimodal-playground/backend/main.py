@@ -647,6 +647,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                         elif msg_type == "audio":
                             await gemini.send_audio(message_content["data"])
                         elif msg_type == "image":
+                            print(f"Received image data: {len(message_content['data'])} bytes")
                             await gemini.send_image(message_content["data"])
                         elif msg_type == "text":
                             await gemini.send_text(message_content["data"])
