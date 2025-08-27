@@ -815,11 +815,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
                                     # Mark conversation as interrupted (no memory save for interrupted conversations)
                                     gemini.is_conversation_interrupted = True
-                                    print("� Conversation marked as interrupted - will not be saved to memory")
+                                    print("Conversation marked as interrupted - will not be saved to memory")
 
                                     # Send immediate interruption message to frontend
                                     await websocket.send_json({"interrupted": "True"})
-                                    print("� Interruption message sent to frontend")
+                                    print("Interruption message sent to frontend")
                                     continue  # Continue processing, don't block
                     except KeyError:
                         pass
