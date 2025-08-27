@@ -128,7 +128,7 @@
 }
 
 .swagger-ui-container .swagger-ui .opblock.opblock-patch {
-  @apply border-l-4 border-l-purple-500;
+  @apply border-l-4 border-l-blue-500;
 }
 
 .swagger-ui-container .swagger-ui .btn {
