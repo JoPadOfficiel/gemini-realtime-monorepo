@@ -228,7 +228,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Calendar className="size-4 text-purple-500" />
+                    <Calendar className="size-4 text-blue-500" />
                     <div>
                       <p className="text-2xl font-bold">{userStats.summary.totalSessions}</p>
                       <p className="text-xs text-muted-foreground">Sessions</p>
