@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -23,7 +24,16 @@ export default function RegisterPage() {
       >
         Login
       </Link>
-      <div className="hidden h-full bg-muted lg:block" />
+      <div className="relative hidden h-full overflow-hidden lg:block">
+        <Image
+          src="/_static/illustrations/cta-register.png"
+          alt="ARKELY Registration"
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="(max-width: 1024px) 0vw, 50vw"
+        />
+      </div>
       <div className="lg:p-8">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col space-y-2 text-center">
