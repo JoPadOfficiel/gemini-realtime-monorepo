@@ -159,14 +159,14 @@ export function GeminiConversationHistory({
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : message.type === 'thinking'
-                      ? 'border border-purple-200 bg-purple-50'
+                      ? 'border border-blue-200 bg-blue-50'
                       : 'bg-muted'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <p className={`text-sm leading-relaxed ${
-                        message.type === 'thinking' ? 'italic text-purple-800' : ''
+                        message.type === 'thinking' ? 'italic text-blue-800' : ''
                       }`}>
                         {message.content}
                       </p>
@@ -228,20 +228,20 @@ export function GeminiConversationHistory({
             {/* Current thinking being processed */}
             {currentThinking && (
               <div className="flex justify-start gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-purple-100">
-                  <Bot className="size-4 text-purple-600" />
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                  <Bot className="size-4 text-blue-600" />
                 </div>
-                <div className="max-w-[80%] rounded-lg border border-purple-200 bg-purple-100 p-3">
+                <div className="max-w-[80%] rounded-lg border border-blue-200 bg-blue-100 p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm italic leading-relaxed text-purple-800">
+                    <p className="text-sm italic leading-relaxed text-blue-800">
                       {currentThinking}
                     </p>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-purple-600">
+                    <span className="text-xs text-blue-600">
                       {formatTime(new Date())}
                     </span>
-                    <Badge variant="secondary" className="bg-purple-200 text-xs text-purple-800">
+                    <Badge variant="secondary" className="bg-blue-200 text-xs text-blue-800">
                       Thinking...
                     </Badge>
                   </div>

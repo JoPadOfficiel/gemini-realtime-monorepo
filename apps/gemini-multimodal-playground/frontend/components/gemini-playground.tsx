@@ -575,7 +575,7 @@ export default function GeminiVoiceChat() {
                             {model.recommended ? '✅ Recommended' : '⚠️ Limited'}
                           </span>
                           <span className={`px-2 py-1 rounded text-xs ${
-                            model.type === 'native_audio' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                            model.type === 'native_audio' ? 'bg-blue-100 text-blue-800' : 'bg-blue-100 text-blue-800'
                           }`}>
                             {model.type === 'native_audio' ? 'Native Audio' : 'Half-Cascade'}
                           </span>

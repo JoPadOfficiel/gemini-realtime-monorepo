@@ -880,7 +880,7 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
               {isStreaming && (
                 <div className="space-y-1 text-center">
                   <div className="flex items-center justify-center gap-2 text-xs">
-                    <span className={`${isScreenSharing ? 'text-purple-500' : 'text-red-500'}`}>
+                    <span className={`${isScreenSharing ? 'text-blue-500' : 'text-red-500'}`}>
                       Screen: {isScreenSharing ? 'On' : 'Off'}
                     </span>
                     <span className={`${isMicEnabled ? 'text-blue-500' : 'text-red-500'}`}>
