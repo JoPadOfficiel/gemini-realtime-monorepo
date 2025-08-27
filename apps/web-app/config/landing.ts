@@ -2,51 +2,51 @@ import { FeatureLdg, InfoLdg, TestimonialType } from "types";
 
 export const infos: InfoLdg[] = [
   {
-    title: "Empower your projects",
+    title: "Revolutionary AI Conversations",
     description:
-      "Unlock the full potential of your projects with our open-source SaaS platform. Collaborate seamlessly, innovate effortlessly, and scale limitlessly.",
-    image: "/_static/illustrations/work-from-home.jpg",
+      "Experience the next generation of AI interaction with ARKELY, powered by Gemini Live. Engage in natural, real-time conversations with advanced audio and video capabilities that understand and respond like never before.",
+    image: "/_static/illustrations/work-woman-ai.png",
     list: [
       {
-        title: "Collaborative",
-        description: "Work together with your team members in real-time.",
-        icon: "laptop",
+        title: "Real-time Audio Processing",
+        description: "Natural voice conversations with instant response and seamless interruption handling for fluid communication.",
+        icon: "mic",
       },
       {
-        title: "Innovative",
-        description: "Stay ahead of the curve with access constant updates.",
-        icon: "settings",
+        title: "Multimodal AI Intelligence",
+        description: "Combine text, voice, and visual inputs for comprehensive AI assistance across all interaction modes.",
+        icon: "eye",
       },
       {
-        title: "Scalable",
+        title: "Gemini Live Powered",
         description:
-          "Our platform offers the scalability needed to adapt to your needs.",
-        icon: "search",
+          "Harness Google's most advanced AI model for unparalleled intelligence and contextual understanding.",
+        icon: "zap",
       },
     ],
   },
   {
-    title: "Seamless Integration",
+    title: "Advanced Collaboration Features",
     description:
-      "Integrate our open-source SaaS seamlessly into your existing workflows. Effortlessly connect with your favorite tools and services for a streamlined experience.",
-    image: "/_static/illustrations/work-from-home.jpg",
+      "ARKELY transforms how teams collaborate with AI. Share screens, audio, and context in real-time while maintaining intelligent conversation flow and memory across sessions.",
+    image: "/_static/illustrations/work-woman-ai.png",
     list: [
       {
-        title: "Flexible",
+        title: "Screen Sharing",
         description:
-          "Customize your integrations to fit your unique requirements.",
-        icon: "laptop",
+          "Share your screen with AI for visual context and collaborative problem-solving in real-time.",
+        icon: "share",
       },
       {
-        title: "Efficient",
-        description: "Streamline your processes and reducing manual effort.",
-        icon: "search",
+        title: "Memory Integration",
+        description: "Persistent memory across conversations for personalized and contextual AI assistance.",
+        icon: "zap",
       },
       {
-        title: "Reliable",
+        title: "Vision Capabilities",
         description:
-          "Rely on our robust infrastructure and comprehensive documentation.",
-        icon: "settings",
+          "Advanced visual understanding for analyzing images, documents, and screen content with AI precision.",
+        icon: "eye",
       },
     ],
   },
@@ -54,97 +54,104 @@ export const infos: InfoLdg[] = [
 
 export const features: FeatureLdg[] = [
   {
-    title: "Feature 1",
+    title: "Gemini Live Integration",
     description:
-      "Amet praesentium deserunt ex commodi tempore fuga voluptatem. Sit, sapiente.",
+      "Direct integration with Google's most advanced AI model for real-time, intelligent conversations with natural language understanding.",
     link: "/",
-    icon: "nextjs",
+    icon: "gemini",
   },
   {
-    title: "Feature 2",
+    title: "Real-time Audio Processing",
     description:
-      "Amet praesentium deserunt ex commodi tempore fuga voluptatem. Sit, sapiente.",
+      "Advanced audio processing with natural speech recognition and synthesis for seamless voice conversations and instant responses.",
     link: "/",
-    icon: "google",
+    icon: "waveform",
   },
   {
-    title: "Feature 3",
+    title: "Intelligent Interruption Handling",
     description:
-      "Amet praesentium deserunt ex commodi tempore fuga voluptatem. Sit, sapiente.",
+      "Sophisticated conversation flow management that handles interruptions naturally, maintaining context like human conversation.",
     link: "/",
-    icon: "gitHub",
+    icon: "brain",
   },
   {
-    title: "Feature 4",
+    title: "Multimodal AI Capabilities",
     description:
-      "Amet praesentium deserunt ex commodi tempore fuga voluptatem. Sit, sapiente.",
+      "Combine text, voice, and visual inputs for comprehensive AI assistance across all communication modes and contexts.",
     link: "/",
-    icon: "laptop",
+    icon: "eye",
   },
   {
-    title: "Feature 5",
+    title: "Screen & Audio Sharing",
     description:
-      "Amet praesentium deserunt ex commodi tempore fuga voluptatem. Sit, sapiente.",
+      "Share your screen and audio in real-time with AI assistance, enabling collaborative problem-solving and enhanced productivity.",
     link: "/",
-    icon: "user",
+    icon: "share",
   },
   {
-    title: "Feature 6",
+    title: "Memory Integration",
     description:
-      "Amet praesentium deserunt ex commodi tempore fuga voluptatem. Sit, sapiente.",
+      "Advanced memory capabilities that remember context across conversations, providing personalized and contextual AI assistance.",
     link: "/",
-    icon: "copy",
+    icon: "zap",
   },
 ];
 
 export const testimonials: TestimonialType[] = [
   {
-    name: "John Doe",
-    job: "Full Stack Developer",
-    image: "https://randomuser.me/api/portraits/men/1.jpg",
+    name: "Sarah Chen",
+    job: "Marketing Director",
+    image: "https://randomuser.me/api/portraits/women/1.jpg",
     review:
-      "The next-saas-stripe-starter repo has truly revolutionized my development workflow. With its comprehensive features and seamless integration with Stripe, I've been able to build and deploy projects faster than ever before. The documentation is clear and concise, making it easy to navigate through the setup process. I highly recommend next-saas-stripe-starter to any developer.",
+      "ARKELY changed how I work. The voice conversations feel natural and I can interrupt to clarify things just like talking to a person. It saves me hours every week.",
   },
   {
-    name: "Alice Smith",
-    job: "UI/UX Designer",
-    image: "https://randomuser.me/api/portraits/women/2.jpg",
+    name: "Marcus Rodriguez",
+    job: "Product Manager",
+    image: "https://randomuser.me/api/portraits/men/2.jpg",
     review:
-      "Thanks to next-saas-stripe-starter, I've been able to create modern and attractive user interfaces in record time. The starter kit provides a solid foundation for building sleek and intuitive designs, allowing me to focus more on the creative aspects of my work.",
+      "I was skeptical about AI assistants until I tried ARKELY. The screen sharing feature is incredible - I can show it my designs and get instant feedback. It remembers our previous conversations too, which makes everything so much smoother. My team productivity has genuinely improved since we started using it.",
   },
   {
-    name: "David Johnson",
-    job: "DevOps Engineer",
-    image: "https://randomuser.me/api/portraits/men/3.jpg",
+    name: "Emily Watson",
+    job: "Freelance Designer",
+    image: "https://randomuser.me/api/portraits/women/3.jpg",
     review:
-      "Thanks to next-saas-stripe-starter, I was able to streamline the entire process and get payments up and running in no time. ",
+      "The audio quality is amazing. I can have long brainstorming sessions without any lag or weird robotic responses. It feels like having a creative partner who never gets tired.",
   },
   {
-    name: "Michael Wilson",
-    job: "Project Manager",
+    name: "David Kim",
+    job: "Small Business Owner",
     image: "https://randomuser.me/api/portraits/men/5.jpg",
     review:
-      "I'm impressed by the quality of code and clear documentation of next-saas-stripe-starter. Kudos to the team!",
+      "ARKELY helps me think through business decisions. I can share my screen to show financial reports and get insights immediately. The AI remembers our past discussions about my business goals, so I don't have to repeat context every time. It's like having a business consultant available 24/7.",
   },
   {
-    name: "Sophia Garcia",
-    job: "Data Analyst",
+    name: "Lisa Park",
+    job: "Student",
     image: "https://randomuser.me/api/portraits/women/6.jpg",
     review:
-      "next-saas-stripe-starter provided me with the tools I needed to efficiently manage user data. Thank you so much!",
+      "Perfect for studying. I can ask questions while reading and get explanations instantly. The voice feature means I can keep my hands free to take notes.",
   },
   {
-    name: "Emily Brown",
-    job: "Marketing Manager",
-    image: "https://randomuser.me/api/portraits/women/4.jpg",
+    name: "James Mitchell",
+    job: "Content Writer",
+    image: "https://randomuser.me/api/portraits/men/4.jpg",
     review:
-      "next-saas-stripe-starter has been an invaluable asset in my role as a marketing manager. With its seamless integration with Stripe, I've been able to launch targeted marketing campaigns with built-in payment functionality, allowing us to monetize our products and services more effectively.",
+      "I use ARKELY for research and writing. Being able to share articles on my screen and discuss them out loud has transformed my workflow. The AI picks up on nuances in my questions and provides exactly the kind of insights I need. It's become an essential part of my creative process.",
   },
   {
-    name: "Jason Stan",
-    job: "Web Designer",
-    image: "https://randomuser.me/api/portraits/men/9.jpg",
+    name: "Rachel Thompson",
+    job: "Teacher",
+    image: "https://randomuser.me/api/portraits/women/9.jpg",
     review:
-      "Thanks to next-saas-stripe-starter, I've been able to create modern and attractive user interfaces in record time. The starter kit provides a solid foundation for building sleek and intuitive designs, allowing me to focus more on the creative aspects of my work.",
+      "Great for lesson planning. I can brainstorm ideas out loud and the AI suggests activities and resources. The conversation feels natural and inspiring.",
+  },
+  {
+    name: "Michael Brown",
+    job: "Consultant",
+    image: "https://randomuser.me/api/portraits/men/7.jpg",
+    review:
+      "ARKELY has become my go-to tool for client preparation. I can share presentation slides and practice my pitch while getting real-time feedback. The AI understands context from our previous sessions, so it knows my consulting style and helps me refine my approach. My clients have noticed the improvement in my presentations.",
   },
 ];

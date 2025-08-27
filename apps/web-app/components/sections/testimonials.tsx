@@ -9,9 +9,8 @@ export default function Testimonials() {
       <div className="container flex max-w-6xl flex-col gap-10 py-32 sm:gap-y-16">
         <HeaderSection
           label="Testimonials"
-          title="What our clients are sharing."
-          subtitle="Discover the glowing feedback from our delighted customers
-            worldwide."
+          title="Real experiences from real users."
+          subtitle="See how ARKELY is transforming the way people work, learn, and collaborate with AI-powered conversations."
         />
 
         <div className="column-1 gap-5 space-y-5 md:columns-2 lg:columns-3 ">
