@@ -3,8 +3,8 @@
   "version": "0.3.1",
   "private": true,
   "author": {
-    "name": "mickasmt",
-    "url": "https://twitter.com/mickasmt"
+    "name": "jopad",
+    "url": "https://twitter.com/jopadofficiel"
   },
   "scripts": {
     "dev": "next dev --turbo",
