@@ -52,7 +52,7 @@ export function GeminiQuickActions({
       description: 'Share your screen with AI',
       icon: Monitor,
       href: '/dashboard/gemini-live/screen',
-      color: 'bg-purple-500',
+      color: 'bg-blue-500',
       onStart: onStartScreen
     }
   ];

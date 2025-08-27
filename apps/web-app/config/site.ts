@@ -4,16 +4,16 @@ import { env } from "@/env.mjs";
 const site_url = env.NEXT_PUBLIC_APP_URL;
 
 export const siteConfig: SiteConfig = {
-  name: "SaaS Starter",
+  name: "ARKELY",
   description:
-    "Get your project off to an explosive start with SaaS Starter! Harness the power of Next.js 14, Prisma, Neon, Auth.js v5, Resend, React Email, Shadcn/ui and Stripe to build your next big thing.",
+    "Experience the future of AI interaction with ARKELY - powered by Gemini Live. Real-time audio and video conversations with advanced AI, featuring seamless interruption handling and multimodal capabilities for the ultimate intelligent assistant experience.",
   url: site_url,
   ogImage: `${site_url}/_static/og.jpg`,
   links: {
-    twitter: "https://twitter.com/miickasmt",
-    github: "https://github.com/mickasmt/next-saas-stripe-starter",
+    twitter: "https://twitter.com/JoPadOfficiel",
+    github: "https://github.com/JoPadOfficiel",
   },
-  mailSupport: "support@saas-starter.com",
+  mailSupport: "support@arkely.ai",
 };
 
 export const footerLinks: SidebarNavItem[] = [

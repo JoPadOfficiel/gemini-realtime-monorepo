@@ -52,6 +52,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "randomuser.me",
       },
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+      },
     ],
     // Next.js 15 image optimizations
     formats: ["image/webp", "image/avif"],

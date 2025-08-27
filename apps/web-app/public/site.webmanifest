@@ -1,7 +1,12 @@
 {
-  "name": "SaaS Starter",
-  "short_name": "SaaS Starter",
+  "name": "ARKELY - Gemini Live AI Assistant",
+  "short_name": "ARKELY",
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
     {
       "src": "./favicons/android-chrome-192x192.png",
       "sizes": "192x192",
@@ -13,7 +18,8 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#ffffff",
+  "theme_color": "#387ff5",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "display": "standalone",
+  "description": "Real-time AI assistant powered by Gemini Live with audio and video capabilities"
 }

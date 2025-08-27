@@ -17,11 +17,12 @@ import { Icons } from "@/components/shared/icons";
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: string;
+  onSuccess?: () => void;
 }
 
 type FormData = z.infer<typeof userAuthSchema>;
 
-export function UserAuthForm({ className, type, ...props }: UserAuthFormProps) {
+export function UserAuthForm({ className, type, onSuccess, ...props }: UserAuthFormProps) {
   const {
     register,
     handleSubmit,
@@ -50,9 +51,14 @@ export function UserAuthForm({ className, type, ...props }: UserAuthFormProps) {
       });
     }
 
-    return toast.success("Check your email", {
+    toast.success("Check your email", {
       description: "We sent you a login link. Be sure to check your spam too.",
     });
+
+    // Call onSuccess callback if provided
+    if (onSuccess) {
+      onSuccess();
+    }
   }
 
   return (
@@ -102,7 +108,11 @@ export function UserAuthForm({ className, type, ...props }: UserAuthFormProps) {
         className={cn(buttonVariants({ variant: "outline" }))}
         onClick={() => {
           setIsGoogleLoading(true);
-          signIn("google");
+          signIn("google").then(() => {
+            if (onSuccess) {
+              onSuccess();
+            }
+          });
         }}
         disabled={isLoading || isGoogleLoading}
       >

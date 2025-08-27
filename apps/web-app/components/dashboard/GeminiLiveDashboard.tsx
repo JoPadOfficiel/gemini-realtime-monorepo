@@ -191,8 +191,8 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
       description: 'Share your screen with AI',
       icon: Monitor,
       href: '/dashboard/gemini-live/screen',
-      color: 'bg-purple-500',
-      textColor: 'text-purple-600'
+      color: 'bg-blue-500',
+      textColor: 'text-blue-600'
     }
   ];
 
@@ -389,7 +389,7 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
                     case 'video':
                       return { icon: Video, color: 'text-green-600', bg: 'bg-green-100' };
                     case 'screen':
-                      return { icon: Monitor, color: 'text-purple-600', bg: 'bg-purple-100' };
+                      return { icon: Monitor, color: 'text-blue-600', bg: 'bg-blue-100' };
                     default:
                       return { icon: Mic, color: 'text-blue-600', bg: 'bg-blue-100' };
                   }
