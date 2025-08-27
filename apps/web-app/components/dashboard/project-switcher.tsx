@@ -21,20 +21,20 @@ type ProjectType = {
 
 const projects: ProjectType[] = [
   {
-    title: "Project 1",
-    slug: "project-number-one",
-    color: "bg-red-500",
-  },
-  {
-    title: "Project 2",
-    slug: "project-number-two",
+    title: "ARKELY AI Assistant",
+    slug: "arkely-main",
     color: "bg-blue-500",
   },
+  {
+    title: "Gemini Live Integration",
+    slug: "gemini-live-project",
+    color: "bg-indigo-500",
+  },
 ];
-const selected: ProjectType = projects[1] || projects[0] || {
-  title: "Default Project",
-  slug: "default",
-  color: "bg-gray-500",
+const selected: ProjectType = projects[0] || {
+  title: "ARKELY",
+  slug: "arkely",
+  color: "bg-blue-500",
 };
 
 export default function ProjectSwitcher({
@@ -140,7 +140,7 @@ function ProjectList({
         }}
       >
         <Plus size={18} className="absolute left-2.5 top-2" />
-        <span className="flex-1 truncate text-center">New Project</span>
+        <span className="flex-1 truncate text-center">New AI Project</span>
       </Button>
     </div>
   );
