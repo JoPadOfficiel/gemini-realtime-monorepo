@@ -101,7 +101,7 @@
 }
 
 .text-gradient_indigo-blue {
-  background: linear-gradient(90deg, #387ff5 0%, rgb(137 165 224 / 0.8) 100%);
+    background: linear-gradient(90deg, #387ff5 0%, rgb(137 165 224 / 0.8) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

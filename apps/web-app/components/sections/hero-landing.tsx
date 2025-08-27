@@ -35,7 +35,7 @@ export default async function HeroLanding() {
           )}
           target="_blank"
         >
-          <span className="mr-3">🚀</span>
+          <span className="mr-3">🎉</span>
           <span className="hidden md:flex">Powered by&nbsp;</span> Gemini Live
           AI on <Icons.twitter className="ml-2 size-3.5" />
         </Link>
