@@ -327,6 +327,41 @@ token_usage_history: List[Dict] = []
 session_history: List[Dict] = []
 daily_stats = defaultdict(lambda: {"tokens": 0, "sessions": 0, "messages": 0})
 recent_activities: List[Dict] = []
+
+@app.post("/api/admin/reset-statistics", tags=["Admin"])
+async def reset_all_statistics():
+    """Reset all statistics data"""
+    global connections, session_states, token_usage_history, session_history, daily_stats, recent_activities
+
+    # Close all active connections
+    for session_id, connection in list(connections.items()):
+        try:
+            await connection.close()
+        except Exception as e:
+            print(f"Error closing connection {session_id}: {e}")
+
+    # Clear all data
+    connections.clear()
+    session_states.clear()
+    token_usage_history.clear()
+    session_history.clear()
+    daily_stats.clear()
+    recent_activities.clear()
+
+    return {
+        "message": "Statistics reset completed",
+        "reset_data": {
+            "connections": 0,
+            "session_states": 0,
+            "token_usage_history": 0,
+            "session_history": 0,
+            "daily_stats": 0,
+            "recent_activities": 0
+        },
+        "timestamp": datetime.now().isoformat()
+    }
+
+
 available_models: List[Dict] = [
     {
         "id": "gemini-live-2.5-flash-preview",
@@ -1221,39 +1256,66 @@ async def get_session_stats():
     now = datetime.now()
     today = now.date()
 
-    total_sessions = len(connections) + len(session_states)
+    unique_sessions = set()
     today_sessions = 0
     total_duration = 0
     session_count = 0
     total_messages = 0
 
-    # Count today's sessions and calculate durations
-    for connection in connections.values():
-        today_sessions += 1  # Active sessions are assumed to be from today
-        # Estimate duration for active sessions (time since creation)
-        if hasattr(connection, 'created_at'):
-            duration = (now - connection.created_at).total_seconds()
+    # Count active sessions and calculate durations
+    for session_id, connection in connections.items():
+        unique_sessions.add(session_id)
+
+        if hasattr(connection, 'session_start_time') and connection.session_start_time:
+            if connection.session_start_time.date() == today:
+                today_sessions += 1
+            # Calculate duration from session start time
+            duration = (now - connection.session_start_time).total_seconds()
             total_duration += duration
             session_count += 1
+        else:
+            # Fallback: assume active sessions are from today
+            today_sessions += 1
+            # Estimate duration (assume 5 minutes for active sessions without start time)
+            total_duration += 300  # 5 minutes
+            session_count += 1
 
+    # Count historical sessions
     for session_id, state in session_states.items():
-        if session_id not in connections:  # Don't double count
+        if session_id not in connections:  # Don't double count active sessions
+            unique_sessions.add(session_id)
+
             if state.created_at.date() == today:
                 today_sessions += 1
 
-            # Calculate session duration
             duration = (state.last_activity - state.created_at).total_seconds()
+            # Cap duration at 24 hours to prevent unrealistic values
+            duration = min(duration, 24 * 3600)  # Max 24 hours
             total_duration += duration
             session_count += 1
 
-            # Estimate messages (tokens / average tokens per message)
-            total_messages += max(1, state.token_count // 50)  # Assume ~50 tokens per message
+            if state.token_count > 0:
+                # Different models have different token-to-message ratios
+                if "native-audio" in state.model:
+                    # Native audio models tend to use more tokens per message
+                    avg_tokens_per_message = 100
+                else:
+                    # Half-cascade models use fewer tokens per message
+                    avg_tokens_per_message = 50
+
+                estimated_messages = max(1, state.token_count // avg_tokens_per_message)
+                total_messages += estimated_messages
 
     # Calculate average session duration
-    avg_duration = int(total_duration / max(session_count, 1))
+    if session_count > 0:
+        avg_duration = int(total_duration / session_count)
+        # Ensure reasonable bounds (between 10 seconds and 2 hours)
+        avg_duration = max(10, min(avg_duration, 7200))
+    else:
+        avg_duration = 0
 
     return SessionStats(
-        totalSessions=total_sessions,
+        totalSessions=len(unique_sessions),
         todaySessions=today_sessions,
         averageSessionDuration=avg_duration,
         totalMessages=total_messages
@@ -1321,10 +1383,9 @@ async def get_session_info(session_id: str):
         token_count=connection.token_count
     )
 
-# Dashboard Statistics APIs
 @app.get("/api/tokens/stats", response_model=TokenStats, tags=["Tokens"])
 async def get_token_stats():
-    """Get token usage statistics for dashboard"""
+    """Get token usage statistics"""
     from datetime import datetime, timedelta
 
     now = datetime.now()
@@ -1332,34 +1393,22 @@ async def get_token_stats():
     week_ago = now - timedelta(days=7)
     month_ago = now - timedelta(days=30)
 
-    # Calculate totals from session states and active connections
-    total_tokens = 0
-    today_tokens = 0
-    weekly_tokens = 0
-    monthly_tokens = 0
+    total_tokens = today_tokens = weekly_tokens = monthly_tokens = 0
 
-    # Count tokens from active connections
     for connection in connections.values():
         total_tokens += connection.token_count
-        # For active sessions, assume they're from today
         today_tokens += connection.token_count
         weekly_tokens += connection.token_count
         monthly_tokens += connection.token_count
 
-    # Count tokens from session history
     for session_id, state in session_states.items():
-        if session_id not in connections:  # Don't double count active sessions
+        if session_id not in connections:
             total_tokens += state.token_count
-
-            # Check if session is from today
-            if state.created_at.date() == today:
+            session_date = state.created_at.date()
+            if session_date == today:
                 today_tokens += state.token_count
-
-            # Check if session is from this week
             if state.created_at >= week_ago:
                 weekly_tokens += state.token_count
-
-            # Check if session is from this month
             if state.created_at >= month_ago:
                 monthly_tokens += state.token_count
 
@@ -1368,7 +1417,7 @@ async def get_token_stats():
         todayTokens=today_tokens,
         weeklyTokens=weekly_tokens,
         monthlyTokens=monthly_tokens,
-        limit=1000000  # 1M tokens default limit
+        limit=1000000
     )
 
 @app.get("/api/dashboard/activities", tags=["Sessions"])
