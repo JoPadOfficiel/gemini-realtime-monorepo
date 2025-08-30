@@ -33,6 +33,8 @@ jobs:
 
       - name: Run backend tests
         working-directory: apps/gemini-multimodal-playground/backend
+        env:
+          PYTHONPATH: .
         run: pytest tests/ -v
 
   test-web-app:
@@ -46,7 +48,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
