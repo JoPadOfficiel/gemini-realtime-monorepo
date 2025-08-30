@@ -746,6 +746,35 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         # Initialize Gemini connection
         await gemini.connect()
 
+        # Retrieve existing memory for this user
+        try:
+            print(f"Retrieving existing memory for user: {user_id}")
+            existing_memories = gemini.memory_manager.query_memory(
+                "previous conversations and context",
+                user_id,
+                client_id
+            )
+
+            if existing_memories:
+                memory_context = gemini.memory_manager.format_memory_response(existing_memories)
+                print(f"Found {len(existing_memories)} existing memories for user {user_id}")
+                print(f"Memory context: {memory_context[:200]}...")
+
+                # Inject memory context into Gemini's initial context
+                initial_memory_message = {
+                    "role": "user",
+                    "parts": [{"text": f"Context from previous conversations: {memory_context}"}]
+                }
+
+                # Send the memory context to Gemini to establish continuity
+                await gemini.send_message(initial_memory_message)
+                print("Memory context injected into Gemini session")
+            else:
+                print(f"No existing memories found for user {user_id}")
+
+        except Exception as e:
+            print(f"Error retrieving memory for user {user_id}: {e}")
+
         # Connection successful
         session_states[client_id].status = "active"
         
