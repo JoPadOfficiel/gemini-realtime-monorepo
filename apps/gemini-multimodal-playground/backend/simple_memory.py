@@ -20,7 +20,7 @@ class Mem0MemoryManager:
 
     def __init__(self):
         self.client = None
-        self.user_id = "default_user"  # Simple fixed user ID
+        self.default_user_id = "default_user"  # Fallback user ID
         self._initialize_mem0_client()
         logger.info("✅ Mem0 cloud memory manager initialized")
 
@@ -50,13 +50,14 @@ class Mem0MemoryManager:
             logger.error(f"Error testing Mem0 client: {e}")
             return False
     
-    def add_to_memory(self, messages: List[Dict], session_id: str, metadata: Optional[Dict] = None):
+    def add_to_memory(self, messages: List[Dict], session_id: str, user_id: str = None, metadata: Optional[Dict] = None):
         """
         Add conversation to Mem0 cloud using the API.
 
         Args:
             messages: List of message dicts with 'role' and 'content'
             session_id: Session identifier
+            user_id: Authenticated user ID for memory isolation
             metadata: Optional metadata for enhanced context
 
         Returns:
@@ -73,12 +74,11 @@ class Mem0MemoryManager:
                 "category": "conversation"
             })
 
-            # Use a consistent user_id based on browser/client
-            # This allows memory persistence across sessions while maintaining some isolation
-            user_id = "browser_user"  # Could be enhanced with actual user identification
+            actual_user_id = user_id or self.default_user_id
+            logger.info(f"🔐 Using user_id for Mem0: {actual_user_id}")
 
-            # Add to Mem0 cloud using the official API
-            result = self.client.add(messages, user_id=user_id, metadata=metadata)
+            # Add to Mem0 cloud using the official API with proper user isolation
+            result = self.client.add(messages, user_id=actual_user_id, metadata=metadata)
 
             # Extract memory ID from result
             memory_id = None
@@ -101,12 +101,13 @@ class Mem0MemoryManager:
             logger.error(f"Error adding to Mem0 cloud: {e}")
             return None
     
-    def query_memory(self, query: str, session_id: str = None) -> List[Dict]:
+    def query_memory(self, query: str, user_id: str = None, session_id: str = None) -> List[Dict]:
         """
         Search for relevant memories using Mem0 cloud API.
 
         Args:
             query: Search query
+            user_id: Authenticated user ID for memory isolation
             session_id: Optional session filter
 
         Returns:
@@ -115,12 +116,11 @@ class Mem0MemoryManager:
         try:
             logger.info(f"Querying Mem0 cloud: {query}")
 
-            # Use a consistent user_id so memories persist across sessions
-            # This allows the AI to remember conversations from previous sessions
-            user_id = "browser_user"
+            actual_user_id = user_id or self.default_user_id
+            logger.info(f"🔐 Querying Mem0 for user_id: {actual_user_id}")
 
-            # Search using Mem0 cloud API
-            response = self.client.search(query=query, user_id=user_id)
+            # Search using Mem0 cloud API with proper user isolation
+            response = self.client.search(query=query, user_id=actual_user_id)
 
             # Handle the response structure
             memories = []

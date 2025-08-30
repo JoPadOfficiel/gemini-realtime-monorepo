@@ -107,7 +107,7 @@ class AsyncMemoryQueue:
             except Exception as e:
                 logger.error(f"❌ Failed to start worker: {e}")
 
-    async def queue_memory_save(self, session_id: str, messages: List[Dict]) -> str:
+    async def queue_memory_save(self, session_id: str, messages: List[Dict], user_id: str = None) -> str:
         """
         Queue memory save operation (non-blocking)
         Returns task_id immediately for tracking
@@ -120,7 +120,7 @@ class AsyncMemoryQueue:
             task_id=task_id,
             session_id=session_id,
             operation="save",
-            data={"messages": messages},
+            data={"messages": messages, "user_id": user_id},
             status=TaskStatus.PENDING,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -225,7 +225,8 @@ class AsyncMemoryQueue:
             if task.operation == "save":
                 # Save conversation to Mem0
                 messages = task.data["messages"]
-                result = await self._save_to_mem0(task.session_id, messages)
+                user_id = task.data.get("user_id")
+                result = await self._save_to_mem0(task.session_id, messages, user_id)
                 task.result = {"memory_id": result}
                 return True
                 
@@ -243,7 +244,7 @@ class AsyncMemoryQueue:
         
         return False
     
-    async def _save_to_mem0(self, session_id: str, messages: List[Dict]) -> str:
+    async def _save_to_mem0(self, session_id: str, messages: List[Dict], user_id: str = None) -> str:
         """Save messages to Mem0 (async wrapper)"""
         if not self.mem0_client:
             raise Exception("Mem0 client not initialized")
@@ -252,9 +253,12 @@ class AsyncMemoryQueue:
         await asyncio.sleep(0.1)
 
         try:
+            actual_user_id = user_id or session_id
+
             # DEBUG: Log the payload being sent to Mem0
             logger.info(f"🔍 DEBUG - Mem0 payload:")
             logger.info(f"   Session ID: {session_id}")
+            logger.info(f"   User ID: {actual_user_id}")
             logger.info(f"   Messages count: {len(messages)}")
             logger.info(f"   Messages preview: {json.dumps(messages[:1], indent=2, ensure_ascii=False) if messages else 'No messages'}")
 
@@ -264,7 +268,7 @@ class AsyncMemoryQueue:
                 None,
                 lambda: self.mem0_client.add(
                     messages=messages,
-                    user_id=session_id
+                    user_id=actual_user_id
                 )
             )
 
@@ -290,7 +294,7 @@ class AsyncMemoryQueue:
             logger.error(f"   Messages: {messages}")
             raise
     
-    async def _query_mem0(self, session_id: str, query: str) -> List[Dict]:
+    async def _query_mem0(self, session_id: str, query: str, user_id: str = None) -> List[Dict]:
         """Query Mem0 for memories (async wrapper)"""
         if not self.mem0_client:
             raise Exception("Mem0 client not initialized")
@@ -298,13 +302,15 @@ class AsyncMemoryQueue:
         await asyncio.sleep(0.1)  # Prevent blocking
 
         try:
+            actual_user_id = user_id or session_id
+
             # Use thread pool for blocking Mem0 call with correct parameters
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: self.mem0_client.search(
                     query=query,
-                    user_id=session_id
+                    user_id=actual_user_id
                 )
             )
             return result or []
