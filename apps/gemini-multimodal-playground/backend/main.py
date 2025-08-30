@@ -17,6 +17,8 @@ from typing import Dict, List, Optional
 from simple_memory import get_memory_manager
 from async_memory import async_memory_queue
 from collections import defaultdict
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 
@@ -327,6 +329,97 @@ token_usage_history: List[Dict] = []
 session_history: List[Dict] = []
 daily_stats = defaultdict(lambda: {"tokens": 0, "sessions": 0, "messages": 0})
 recent_activities: List[Dict] = []
+
+# ============================================================================
+# POSTGRESQL DATABASE SAVE FUNCTION
+# ============================================================================
+
+def save_to_database(user_id: str, session_id: str, model: str, total_tokens: int):
+    """Function to save token usage to PostgreSQL - UPSERT to prevent duplicates"""
+    try:
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            return
+
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO token_usages (id, "userId", model, "inputTokens", "outputTokens", "totalTokens", cost, endpoint, "sessionId", created_at)
+            VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT ("sessionId")
+            DO UPDATE SET
+                "totalTokens" = EXCLUDED."totalTokens",
+                "inputTokens" = EXCLUDED."inputTokens",
+                "outputTokens" = EXCLUDED."outputTokens",
+                cost = EXCLUDED.cost,
+                created_at = NOW()
+        """, (user_id, model, total_tokens//2, total_tokens//2, total_tokens, total_tokens * 0.000075, f"/ws/{session_id}", session_id))
+
+        cursor.execute("""
+            INSERT INTO user_activities (id, "userId", action, details, created_at)
+            VALUES (gen_random_uuid(), %s, %s, %s, NOW())
+            ON CONFLICT DO NOTHING
+        """, (user_id, "session_activity", json.dumps({"tokens": total_tokens, "model": model, "session_id": session_id})))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print(f"✅ UPSERTED to DB: {total_tokens} tokens for session {session_id}")
+
+    except Exception as e:
+        print(f"❌ DB save failed: {e}")
+
+def load_database_stats():
+    """Load historical statistics from PostgreSQL database"""
+    try:
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            return {"total_tokens": 0, "total_sessions": 0, "activities": []}
+
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Get total tokens from database
+        cursor.execute("SELECT COALESCE(SUM(\"totalTokens\"), 0) as total_tokens FROM token_usages")
+        total_tokens = cursor.fetchone()["total_tokens"]
+
+        # Get total sessions from database
+        cursor.execute("SELECT COUNT(DISTINCT \"sessionId\") as total_sessions FROM token_usages WHERE \"sessionId\" IS NOT NULL")
+        total_sessions = cursor.fetchone()["total_sessions"]
+
+        # Get recent activities from database
+        cursor.execute("""
+            SELECT ua.action, ua.details, ua.created_at, tu."totalTokens", tu.model
+            FROM user_activities ua
+            LEFT JOIN token_usages tu ON ua."userId" = tu."userId"
+            ORDER BY ua.created_at DESC
+            LIMIT 20
+        """)
+        activities = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        print(f"✅ Loaded from DB: {total_tokens} total tokens, {total_sessions} sessions, {len(activities)} activities")
+        return {
+            "total_tokens": int(total_tokens),
+            "total_sessions": int(total_sessions),
+            "activities": [
+                {
+                    "type": activity["action"],
+                    "description": f"Session with {activity.get('totalTokens', 0)} tokens",
+                    "tokens_used": activity.get("totalTokens", 0),
+                    "timestamp": activity["created_at"].isoformat() if activity["created_at"] else datetime.now().isoformat(),
+                    "mode": "audio"
+                }
+                for activity in activities
+            ]
+        }
+
+    except Exception as e:
+        print(f"⚠️ DB load failed: {e}")
+        return {"total_tokens": 0, "total_sessions": 0, "activities": []}
 
 @app.post("/api/admin/reset-statistics", tags=["Admin"])
 async def reset_all_statistics():
@@ -722,6 +815,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             if client_id in session_states:
                                 session_states[client_id].token_count = gemini.token_count
 
+                            print(f"🔍 Token count updated: {gemini.token_count} for session {client_id}")
+
                             await websocket.send_text(json.dumps({
                                 "type": "token_usage",
                                 "data": {
@@ -757,8 +852,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                     query = function_args.get("query", "")
                                     print(f"Memory query: {query}")
 
-                                    # Query memory using the simple memory manager
-                                    memories = gemini.memory_manager.query_memory(query, gemini.session_id)
+                                    user_id = gemini.config.get('user_id', 'default-user') if gemini.config else 'default-user'
+                                    memories = gemini.memory_manager.query_memory(query, user_id, gemini.session_id)
                                     memory_response = gemini.memory_manager.format_memory_response(memories)
 
                                     # Send function response back to Gemini (following reference format)
@@ -915,16 +1010,19 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                                     if not async_memory_queue.mem0_client:
                                                         await async_memory_queue.initialize(gemini.memory_manager)
 
+                                                    user_id = gemini.config.get('user_id', 'default-user') if gemini.config else 'default-user'
                                                     task_id = await async_memory_queue.queue_memory_save(
                                                         gemini.session_id,
-                                                        messages
+                                                        messages,
+                                                        user_id
                                                     )
                                                     print(f"✅ Conversation queued for memory save (task: {task_id[:8]}...)")
                                                 except Exception as e:
                                                     print(f"Error queuing conversation save: {e}")
                                                     try:
-                                                        gemini.memory_manager.add_to_memory(messages, gemini.session_id)
-                                                        print(f"✅ Fallback: Conversation saved synchronously")
+                                                        user_id = gemini.config.get('user_id', 'default-user') if gemini.config else 'default-user'
+                                                        gemini.memory_manager.add_to_memory(messages, gemini.session_id, user_id)
+                                                        print(f"✅ Fallback: Conversation saved synchronously for user {user_id}")
                                                     except Exception as fallback_error:
                                                         print(f"❌ Memory save failed: {fallback_error}")
 
@@ -1033,9 +1131,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     pass  # WebSocket might be closed
 
     finally:
-        # Cleanup active connection but keep session state
         if client_id in connections:
             try:
+                gemini = connections[client_id]
+                if gemini.token_count > 0:
+                    user_id = gemini.config.get('user_id', 'default-user-gemini-live') if gemini.config else 'default-user-gemini-live'
+                    save_to_database(user_id, client_id, gemini.model, gemini.token_count)
+                    print(f"💾 Final save: {gemini.token_count} tokens for session {client_id}")
+
                 await connections[client_id].close()
             except Exception as e:
                 print(f"Error closing connection: {e}")
@@ -1250,8 +1353,11 @@ async def get_token_usage(session_id: str):
 # Session Management APIs
 @app.get("/api/sessions/stats", response_model=SessionStats, tags=["Sessions"])
 async def get_session_stats():
-    """Get session statistics for dashboard"""
+    """Get session statistics for dashboard (database + current session)"""
     from datetime import datetime
+
+    # Load historical data from database
+    db_stats = load_database_stats()
 
     now = datetime.now()
     today = now.date()
@@ -1279,6 +1385,16 @@ async def get_session_stats():
             # Estimate duration (assume 5 minutes for active sessions without start time)
             total_duration += 300  # 5 minutes
             session_count += 1
+
+        # Count messages for ACTIVE sessions too!
+        if connection.token_count > 0:
+            if "native-audio" in connection.model:
+                avg_tokens_per_message = 100
+            else:
+                avg_tokens_per_message = 50
+
+            estimated_messages = max(1, connection.token_count // avg_tokens_per_message)
+            total_messages += estimated_messages
 
     # Count historical sessions
     for session_id, state in session_states.items():
@@ -1314,8 +1430,11 @@ async def get_session_stats():
     else:
         avg_duration = 0
 
+    total_sessions_count = max(db_stats["total_sessions"], len(unique_sessions))
+
+    # Combine database + session data
     return SessionStats(
-        totalSessions=len(unique_sessions),
+        totalSessions=total_sessions_count,
         todaySessions=today_sessions,
         averageSessionDuration=avg_duration,
         totalMessages=total_messages
@@ -1385,25 +1504,29 @@ async def get_session_info(session_id: str):
 
 @app.get("/api/tokens/stats", response_model=TokenStats, tags=["Tokens"])
 async def get_token_stats():
-    """Get token usage statistics"""
+    """Get token usage statistics (database + current session)"""
     from datetime import datetime, timedelta
 
+    # Load historical data from database
+    db_stats = load_database_stats()
+
+    # Get current session data
     now = datetime.now()
     today = now.date()
     week_ago = now - timedelta(days=7)
     month_ago = now - timedelta(days=30)
 
-    total_tokens = today_tokens = weekly_tokens = monthly_tokens = 0
+    session_tokens = today_tokens = weekly_tokens = monthly_tokens = 0
 
     for connection in connections.values():
-        total_tokens += connection.token_count
+        session_tokens += connection.token_count
         today_tokens += connection.token_count
         weekly_tokens += connection.token_count
         monthly_tokens += connection.token_count
 
     for session_id, state in session_states.items():
         if session_id not in connections:
-            total_tokens += state.token_count
+            session_tokens += state.token_count
             session_date = state.created_at.date()
             if session_date == today:
                 today_tokens += state.token_count
@@ -1412,8 +1535,9 @@ async def get_token_stats():
             if state.created_at >= month_ago:
                 monthly_tokens += state.token_count
 
+    # 🚨 CRITICAL FIX: Don't double-count tokens (DB already contains session data)
     return TokenStats(
-        totalTokens=total_tokens,
+        totalTokens=db_stats["total_tokens"],  # Remove + session_tokens to prevent double counting
         todayTokens=today_tokens,
         weeklyTokens=weekly_tokens,
         monthlyTokens=monthly_tokens,
@@ -1422,8 +1546,10 @@ async def get_token_stats():
 
 @app.get("/api/dashboard/activities", tags=["Sessions"])
 async def get_recent_activities():
-    """Get recent activities for dashboard"""
-    activities = []
+    """Get recent activities for dashboard (database + current session)"""
+    # Load historical activities from database
+    db_stats = load_database_stats()
+    activities = db_stats["activities"][:10]  # Get top 10 from database
 
     # Add recent sessions as activities
     all_sessions = []
@@ -1467,6 +1593,7 @@ async def get_recent_activities():
         else:
             description += " completed"
 
+        # Add current session activities to the list
         activities.append({
             "type": mode,
             "description": description,
@@ -1475,7 +1602,11 @@ async def get_recent_activities():
             "mode": mode
         })
 
-    return {"activities": activities}
+    # Combine database activities + current session activities
+    # Sort by timestamp and take the most recent 20
+    all_activities = sorted(activities, key=lambda x: x["timestamp"], reverse=True)[:20]
+
+    return {"activities": all_activities}
 
 # Admin Model Configuration APIs
 @app.get("/api/admin/models", tags=["Admin"])
