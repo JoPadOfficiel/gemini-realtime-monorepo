@@ -305,7 +305,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                                   </span>
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-center text-sm">{usage.totalTokens.toLocaleString()}</TableCell>
+                              <TableCell className="text-center text-sm">{(usage.totalTokens || 0).toLocaleString()}</TableCell>
                               <TableCell className="hidden text-center text-sm sm:table-cell">
                                 {usage.cost ? formatCurrency(usage.cost) : 'Free'}
                               </TableCell>

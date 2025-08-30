@@ -275,7 +275,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">{totalTokens.toLocaleString()}</p>
+                        <p className="font-semibold">{(totalTokens || 0).toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">tokens</p>
                       </div>
                     </div>

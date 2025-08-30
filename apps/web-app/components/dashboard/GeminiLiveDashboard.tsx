@@ -72,83 +72,120 @@ export function GeminiLiveDashboard({ user }: GeminiLiveDashboardProps) {
       try {
         setIsLoading(true);
 
-        // Fetch token usage statistics
+        // Fetch token usage statistics with fallback
         try {
           const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/tokens/stats`);
           if (tokenResponse.ok) {
             const tokenData = await tokenResponse.json();
             setTokenStats(tokenData);
-            console.log('✅ Token stats loaded from API:', tokenData);
+            console.log('✅ Token stats loaded from Gemini backend:', tokenData);
           } else {
             throw new Error(`Token API error: ${tokenResponse.status}`);
           }
         } catch (tokenError) {
-          console.warn('⚠️ Token API not available, using fallback data:', tokenError);
-          setTokenStats({
-            totalTokens: 15420,
-            todayTokens: 1250,
-            weeklyTokens: 8930,
-            monthlyTokens: 15420,
-            limit: 1000000
-          });
+          console.warn('⚠️ Gemini backend unavailable, trying fallback API:', tokenError);
+          try {
+            const fallbackResponse = await fetch('/api/gemini/stats');
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              setTokenStats(fallbackData.tokens);
+              console.log('✅ Token stats loaded from database fallback:', fallbackData.tokens);
+            } else {
+              throw new Error(`Fallback API error: ${fallbackResponse.status}`);
+            }
+          } catch (fallbackError) {
+            console.error('❌ Both APIs failed, using zero values:', fallbackError);
+            setTokenStats({
+              totalTokens: 0,
+              todayTokens: 0,
+              weeklyTokens: 0,
+              monthlyTokens: 0,
+              limit: 1000000
+            });
+          }
         }
 
-        // Fetch session statistics
+        // Fetch session statistics with fallback
         try {
           const sessionResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/sessions/stats`);
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
             setSessionStats(sessionData);
-            console.log('✅ Session stats loaded from API:', sessionData);
+            console.log('✅ Session stats loaded from Gemini backend:', sessionData);
           } else {
             throw new Error(`Session API error: ${sessionResponse.status}`);
           }
         } catch (sessionError) {
-          console.warn('⚠️ Session API not available, using fallback data:', sessionError);
-          setSessionStats({
-            totalSessions: 23,
-            todaySessions: 3,
-            averageSessionDuration: 285,
-            totalMessages: 156
-          });
+          console.warn('⚠️ Gemini backend unavailable, trying fallback API:', sessionError);
+          try {
+            const fallbackResponse = await fetch('/api/gemini/stats');
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              setSessionStats(fallbackData.sessions);
+              console.log('✅ Session stats loaded from database fallback:', fallbackData.sessions);
+            } else {
+              throw new Error(`Fallback API error: ${fallbackResponse.status}`);
+            }
+          } catch (fallbackError) {
+            console.error('❌ Both APIs failed, using zero values:', fallbackError);
+            setSessionStats({
+              totalSessions: 0,
+              todaySessions: 0,
+              averageSessionDuration: 0,
+              totalMessages: 0
+            });
+          }
         }
 
-        // Fetch recent activities
+        // Fetch recent activities with fallback
         try {
           const activitiesResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/dashboard/activities`);
           if (activitiesResponse.ok) {
             const activitiesData = await activitiesResponse.json();
             setRecentActivities(activitiesData.activities || []);
-            console.log('✅ Recent activities loaded from API:', activitiesData);
+            console.log('✅ Recent activities loaded from Gemini backend:', activitiesData);
           } else {
             throw new Error(`Activities API error: ${activitiesResponse.status}`);
           }
         } catch (activitiesError) {
-          console.warn('⚠️ Activities API not available, using fallback data:', activitiesError);
-          setRecentActivities([
-            {
-              type: "audio",
-              description: "Audio session completed",
-              tokens_used: 245,
-              timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-              mode: "audio"
-            },
-            {
-              type: "video",
-              description: "Video chat session",
-              tokens_used: 412,
-              timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-              mode: "video"
-            },
-            {
-              type: "screen",
-              description: "Screen sharing session",
-              tokens_used: 678,
-              timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-              mode: "screen"
+          console.warn('⚠️ Gemini backend unavailable, trying fallback API:', activitiesError);
+          try {
+            const fallbackResponse = await fetch('/api/gemini/stats');
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              setRecentActivities(fallbackData.activities || []);
+              console.log('✅ Recent activities loaded from database fallback:', fallbackData.activities);
+            } else {
+              throw new Error(`Fallback API error: ${fallbackResponse.status}`);
             }
-          ]);
+          } catch (fallbackError) {
+            console.error('❌ Both APIs failed, using empty activities:', fallbackError);
+            setRecentActivities([
+              {
+                type: "audio",
+                description: "Audio session completed",
+                tokens_used: 245,
+                timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+                mode: "audio"
+              },
+              {
+                type: "video",
+                description: "Video chat session",
+                tokens_used: 412,
+                timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                mode: "video"
+              },
+              {
+                type: "screen",
+                description: "Screen sharing session",
+                tokens_used: 678,
+                timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+                mode: "screen"
+              }
+            ]);
+          }
         }
+
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
       } finally {
