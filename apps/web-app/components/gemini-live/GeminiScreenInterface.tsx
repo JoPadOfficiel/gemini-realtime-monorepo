@@ -53,6 +53,8 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [availableModels, setAvailableModels] = useState<any[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
   
   const [config, setConfig] = useState<Config>({
     systemPrompt: "You are a friendly Gemini 2.0 model with screen analysis capabilities. Respond verbally and analyze what you see on the shared screen. If the user speaks in French, respond in French. If the user speaks in English, respond in English. Adapt to the user's language automatically.",
@@ -576,6 +578,76 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
     };
   }, [stopStream]);
 
+  // Load available models
+  useEffect(() => {
+    const loadAvailableModels = async () => {
+      if (!user?.id) return;
+
+      try {
+        setIsLoadingModels(true);
+
+        // First, try to get user-specific model access
+        const userModelsResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/users/${user.id}/models`);
+        let userModels = [];
+
+        if (userModelsResponse.ok) {
+          const userModelData = await userModelsResponse.json();
+          console.log('🔧 User-specific models raw:', userModelData);
+
+          // Extract models from the response format and filter enabled ones
+          if (userModelData && userModelData.model_access) {
+            userModels = userModelData.model_access.filter((model: any) => model.enabled);
+            console.log('🔧 Extracted user models:', userModelData.model_access);
+            console.log('🔧 Filtered enabled models:', userModels);
+          }
+        }
+
+        // If no user-specific models, get global models
+        if (userModels.length === 0) {
+          const globalModelsResponse = await fetch(`${process.env.NEXT_PUBLIC_GEMINI_BACKEND_URL || 'http://localhost:8000'}/api/admin/models`);
+          if (globalModelsResponse.ok) {
+            const globalModels = await globalModelsResponse.json();
+            // Filter only enabled models
+            userModels = globalModels.filter((model: any) => model.enabled);
+            console.log('🔧 Global enabled models:', userModels);
+          }
+        }
+
+        setAvailableModels(userModels);
+
+        // Set default model if available
+        if (userModels.length > 0) {
+          console.log('🔧 Available models structure:', userModels);
+
+          // Find default model (look for is_default: true or recommended: true)
+          const defaultModel = userModels.find((m: any) => m.is_default || m.recommended) || userModels[0];
+          console.log('🔧 Selected default model:', defaultModel);
+
+          if (defaultModel && defaultModel.model_id) {
+            setConfig(prev => ({
+              ...prev,
+              model: defaultModel.model_id
+            }));
+            console.log('🔧 Default model set to:', defaultModel.model_id);
+          }
+        }
+
+      } catch (error) {
+        console.warn('⚠️ Failed to load available models:', error);
+        // Fallback to default model
+        setAvailableModels([{
+          id: "gemini-live-2.5-flash-preview",
+          name: "Gemini Live 2.5 Flash (Fallback)",
+          enabled: true
+        }]);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    loadAvailableModels();
+  }, [user?.id]);
+
   return (
     <div className="space-y-6">
       {error && (
@@ -599,8 +671,14 @@ export function GeminiScreenInterface({ user }: GeminiScreenInterfaceProps) {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         userId={user?.id || 'default-user'}
+        availableModels={availableModels}
+        currentModel={config.model}
+        onModelChange={(modelId) => {
+          setConfig(prev => ({ ...prev, model: modelId }));
+          console.log('🔧 Model changed to:', modelId);
+        }}
         onSettingsChange={(settings) => {
-          console.log('Screen share settings updated:', settings);
+          console.log('✅ Screen share settings updated:', settings);
           // Update config with new settings
           setConfig(prev => ({
             ...prev,
