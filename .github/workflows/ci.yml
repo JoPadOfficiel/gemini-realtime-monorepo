@@ -29,7 +29,7 @@ jobs:
         working-directory: apps/gemini-multimodal-playground/backend
         run: |
           python -m pip install --upgrade pip
-          pip install pytest fastapi
+          pip install pytest fastapi httpx
 
       - name: Run backend tests
         working-directory: apps/gemini-multimodal-playground/backend
@@ -47,17 +47,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: apps/web-app/package-lock.json
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
 
       - name: Install dependencies
         working-directory: apps/web-app
-        run: |
-          npm ci
-          npm install vitest
+        run: pnpm install
 
       - name: Run web app tests
         working-directory: apps/web-app
-        run: npm test
+        run: pnpm test
 
 
