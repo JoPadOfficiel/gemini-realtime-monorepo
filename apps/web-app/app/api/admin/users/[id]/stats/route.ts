@@ -81,6 +81,9 @@ export async function GET(
     const sessionCount = userStats._count.tokenUsages;
     const activityCount = userStats._count.userActivities;
 
+    // Estimate message count (roughly 50 tokens per message)
+    const messageCount = Math.max(1, Math.floor(totalTokens / 50));
+
     // Group usage by model with display names
     const usageByModel = userStats.tokenUsages.reduce((acc, usage) => {
       const modelId = usage.model || 'unknown';
@@ -116,6 +119,7 @@ export async function GET(
         totalCost,
         sessionCount,
         activityCount,
+        messageCount,
       },
       usageByModel: Object.values(usageByModel),
       recentTokenUsage: userStats.tokenUsages.map(usage => ({
