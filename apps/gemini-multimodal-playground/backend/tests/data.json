@@ -1,0 +1,72 @@
+{
+  "token_stats": {
+    "totalTokens": 15420,
+    "todayTokens": 1250,
+    "weeklyTokens": 8900,
+    "monthlyTokens": 12300,
+    "limit": 1000000
+  },
+  "session_stats": {
+    "totalSessions": 23,
+    "todaySessions": 3,
+    "averageSessionDuration": 420,
+    "totalMessages": 156
+  },
+  "activities": [
+    {
+      "type": "audio",
+      "description": "Audio session completed",
+      "tokens_used": 245,
+      "timestamp": "2024-08-30T10:30:00Z",
+      "mode": "audio"
+    },
+    {
+      "type": "video",
+      "description": "Video chat session",
+      "tokens_used": 412,
+      "timestamp": "2024-08-30T09:15:00Z",
+      "mode": "video"
+    },
+    {
+      "type": "screen",
+      "description": "Screen sharing session",
+      "tokens_used": 678,
+      "timestamp": "2024-08-30T08:45:00Z",
+      "mode": "screen"
+    }
+  ],
+  "users": [
+    {
+      "id": "user-123",
+      "name": "Test User",
+      "email": "test@example.com",
+      "sessions": 5,
+      "totalTokens": 2500
+    },
+    {
+      "id": "user-456",
+      "name": "Demo User",
+      "email": "demo@example.com",
+      "sessions": 8,
+      "totalTokens": 4200
+    }
+  ],
+  "sessions": [
+    {
+      "id": "session-abc",
+      "userId": "user-123",
+      "duration": 300,
+      "tokens": 150,
+      "messages": 12,
+      "status": "completed"
+    },
+    {
+      "id": "session-def",
+      "userId": "user-456",
+      "duration": 450,
+      "tokens": 220,
+      "messages": 18,
+      "status": "active"
+    }
+  ]
+}

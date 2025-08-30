@@ -18,6 +18,8 @@
     "preview": "next build && next start",
     "clean": "rm -rf .next .content-collections",
     "build:analyze": "ANALYZE=true next build",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
     "build:info": "echo '📦 Next.js 15 Build Options:' && echo '  • pnpm run build        → Production build (Webpack - Recommended)' && echo '  • pnpm run build:turbo  → Turbopack build (Experimental - Faster)' && echo '  • pnpm run dev          → Development with Turbopack' && echo '  • pnpm run dev:webpack  → Development with Webpack' && echo '  • pnpm run preview      → Build and preview locally' && echo '  • pnpm run clean        → Clean build artifacts'",
     "postinstall": "prisma generate",
     "vercel-build": "prisma migrate deploy && prisma generate && next build",
@@ -149,7 +151,8 @@
     "swagger-parser": "^10.0.3",
     "tailwindcss": "^3.4.17",
     "typescript": "5.9.2",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.0.0",
+    "vitest": "^3.2.4"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

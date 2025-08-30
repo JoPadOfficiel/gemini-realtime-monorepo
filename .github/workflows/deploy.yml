@@ -33,7 +33,7 @@ jobs:
 
             # Install system dependencies for Python packages
             echo "Installing system dependencies..."
-            sudo apt install -y build-essential libssl-dev libffi-dev python3-dev portaudio19-dev libasound2-dev
+            sudo apt install -y python3-dev libpq-dev portaudio19-dev
 
             # Verify Python installation
             echo "Verifying Python installation..."
@@ -96,7 +96,7 @@ jobs:
             echo "DEBUG=${{ secrets.DEBUG }}" >> .env
             echo "HOST=${{ secrets.HOST }}" >> .env
             echo "PORT=8000" >> .env
-            echo "CORS_ORIGINS=https://gemini-realtime-monorepo-web-app.vercel.app" >> .env
+            echo "CORS_ORIGINS=https://gemini-realtime-monorepo-web-app.vercel.app,http://localhost:3000" >> .env
 
             # Kill existing process on port 8000
             echo "Stopping existing backend service on port 8000..."

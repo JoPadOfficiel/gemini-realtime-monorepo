@@ -48,6 +48,24 @@ yarn dlx turbo build
 pnpm exec turbo build
 ```
 
+### Tests
+
+To run tests for all components:
+
+**Backend Gemini Tests (Python):**
+```bash
+cd apps/gemini-multimodal-playground/backend
+python3 -m pip install pytest fastapi
+python3 -m pytest tests/ -v
+```
+
+**Web App Tests (Vitest):**
+```bash
+cd apps/web-app
+npm install vitest --save-dev
+npm test
+```
+
 You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
 
 ```

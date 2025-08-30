@@ -1,0 +1,45 @@
+{
+  "dashboard": {
+    "title": "Gemini Live Dashboard",
+    "sections": ["Token Usage", "Session Statistics", "Recent Activities"],
+    "refreshInterval": 30000
+  },
+  "api_endpoints": [
+    "/api/gemini/stats",
+    "/api/admin/users",
+    "/api/dashboard/activities"
+  ],
+  "mock_responses": {
+    "tokens": {
+      "totalTokens": 15420,
+      "todayTokens": 1250,
+      "weeklyTokens": 8900,
+      "monthlyTokens": 12300
+    },
+    "sessions": {
+      "totalSessions": 23,
+      "averageSessionDuration": 420,
+      "totalMessages": 156
+    },
+    "activities": [
+      {
+        "type": "audio",
+        "description": "Audio session completed",
+        "tokens_used": 245,
+        "timestamp": "2024-08-30T10:30:00Z"
+      }
+    ]
+  },
+  "validation_rules": {
+    "tokens": {
+      "min": 0,
+      "max": 1000000,
+      "required_fields": ["totalTokens", "todayTokens"]
+    },
+    "sessions": {
+      "min_duration": 0,
+      "max_duration": 7200,
+      "required_fields": ["totalSessions", "averageSessionDuration"]
+    }
+  }
+}
