@@ -34,8 +34,22 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Create docs directory
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        mkdir -p docs
+
     - name: Generate OpenAPI documentation
       working-directory: ${{ env.BACKEND_DIR }}
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        WEBSOCKET_PORT: 8765
+        DEBUG: false
+        HOST: 0.0.0.0
+        PORT: 8000
+        CORS_ORIGINS: http://localhost:3000
       run: |
         python generate_openapi.py --validate
         python generate_openapi.py --output docs/openapi-pretty.json --pretty --validate
@@ -75,7 +89,7 @@ jobs:
         echo "**Documentation:** [Swagger UI](http://localhost:8000/docs) | [ReDoc](http://localhost:8000/redoc)" >> $GITHUB_STEP_SUMMARY
         
     - name: Upload documentation artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: api-documentation
         path: |
