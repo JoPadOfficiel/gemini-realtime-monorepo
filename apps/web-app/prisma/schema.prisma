@@ -99,6 +99,7 @@ model TokenUsage {
 
   @@index([userId])
   @@index([createdAt])
+  @@unique([sessionId], name: "unique_session_id")
   @@map(name: "token_usages")
 }
 
