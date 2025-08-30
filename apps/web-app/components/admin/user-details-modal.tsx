@@ -67,27 +67,28 @@ interface UserStats {
     isActive: boolean;
     createdAt: string;
     lastLoginAt: string | null;
-    tokenUsages: Array<{
-      id: string;
-      model: string;
-      totalTokens: number;
-      cost: number | null;
-      endpoint: string | null;
-      createdAt: string;
-    }>;
-    userActivities: Array<{
-      id: string;
-      action: string;
-      details: any;
-      createdAt: string;
-    }>;
   };
-  summary: {
+  stats: {
     totalTokens: number;
     totalCost: number;
-    totalSessions: number;
-    totalActivities: number;
+    sessionCount: number;
+    activityCount: number;
+    messageCount: number;
   };
+  recentTokenUsage: Array<{
+    id: string;
+    model: string;
+    totalTokens: number;
+    cost: number | null;
+    endpoint: string | null;
+    createdAt: string;
+  }>;
+  recentActivities: Array<{
+    id: string;
+    action: string;
+    details: any;
+    createdAt: string;
+  }>;
   usageByModel: Array<{
     model: string;
     modelId: string;
@@ -146,8 +147,8 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
             <Users className="size-5" />
             User Details
             {userStats && (
-              <Badge variant={userStats.user.isActive ? 'default' : 'destructive'}>
-                {userStats.user.isActive ? 'Active' : 'Inactive'}
+              <Badge variant={userStats?.user?.isActive ? 'default' : 'destructive'}>
+                {userStats?.user?.isActive ? 'Active' : 'Inactive'}
               </Badge>
             )}
           </DialogTitle>
@@ -171,26 +172,26 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
               <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium">{userStats.user.name || 'Not defined'}</p>
+                  <p className="font-medium">{userStats?.user?.name || 'Not defined'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{userStats.user.email}</p>
+                  <p className="font-medium">{userStats?.user?.email || 'No email'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Role</p>
-                  <Badge variant={userStats.user.role === 'ADMIN' ? 'default' : 'secondary'}>
-                    {userStats.user.role}
+                  <Badge variant={userStats?.user?.role === 'ADMIN' ? 'default' : 'secondary'}>
+                    {userStats?.user?.role || 'USER'}
                   </Badge>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Registration</p>
-                  <p className="font-medium">{formatDate(userStats.user.createdAt)}</p>
+                  <p className="font-medium">{userStats?.user?.createdAt ? formatDate(userStats.user.createdAt) : 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Last Login</p>
                   <p className="font-medium">
-                    {userStats.user.lastLoginAt
+                    {userStats?.user?.lastLoginAt
                       ? formatDate(userStats.user.lastLoginAt)
                       : 'Never logged in'
                     }
@@ -200,13 +201,13 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
             </Card>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
                     <Zap className="size-4 text-blue-500" />
                     <div>
-                      <p className="text-2xl font-bold">{userStats.summary.totalTokens.toLocaleString()}</p>
+                      <p className="text-2xl font-bold">{userStats?.stats?.totalTokens?.toLocaleString() || '0'}</p>
                       <p className="text-xs text-muted-foreground">Tokens used</p>
                     </div>
                   </div>
@@ -218,7 +219,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   <div className="flex items-center gap-2">
                     <Coins className="size-4 text-green-500" />
                     <div>
-                      <p className="text-2xl font-bold">{formatCurrency(userStats.summary.totalCost)}</p>
+                      <p className="text-2xl font-bold">{formatCurrency(userStats?.stats?.totalCost || 0)}</p>
                       <p className="text-xs text-muted-foreground">Total cost</p>
                     </div>
                   </div>
@@ -230,7 +231,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   <div className="flex items-center gap-2">
                     <Calendar className="size-4 text-blue-500" />
                     <div>
-                      <p className="text-2xl font-bold">{userStats.summary.totalSessions}</p>
+                      <p className="text-2xl font-bold">{userStats?.stats?.sessionCount || 0}</p>
                       <p className="text-xs text-muted-foreground">Sessions</p>
                     </div>
                   </div>
@@ -242,8 +243,20 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   <div className="flex items-center gap-2">
                     <Activity className="size-4 text-orange-500" />
                     <div>
-                      <p className="text-2xl font-bold">{userStats.summary.totalActivities}</p>
+                      <p className="text-2xl font-bold">{userStats?.stats?.activityCount || 0}</p>
                       <p className="text-xs text-muted-foreground">Activities</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="size-4 text-purple-500" />
+                    <div>
+                      <p className="text-2xl font-bold">{userStats?.stats?.messageCount || 0}</p>
+                      <p className="text-xs text-muted-foreground">Messages</p>
                     </div>
                   </div>
                 </CardContent>
@@ -279,7 +292,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {userStats.user.tokenUsages?.map((usage) => (
+                          {userStats?.recentTokenUsage?.map((usage) => (
                             <TableRow key={usage.id}>
                               <TableCell className="text-sm">{formatDate(usage.createdAt)}</TableCell>
                               <TableCell className="text-sm">
@@ -315,7 +328,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {userStats.usageByModel.map((model) => (
+                      {userStats?.usageByModel?.map((model) => (
                         <div key={model.modelId || model.model} className="flex flex-col space-y-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                           <div className="flex-1">
                             <p className="break-words text-sm font-medium sm:text-base">{model.model}</p>
@@ -342,7 +355,7 @@ export default function UserDetailsModal({ userId, isOpen, onClose }: UserDetail
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {userStats.user.userActivities?.map((activity) => (
+                      {userStats?.recentActivities?.map((activity) => (
                         <div key={activity.id} className="flex items-center justify-between rounded-lg border p-3">
                           <div>
                             <p className="font-medium">{activity.action}</p>
