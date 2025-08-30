@@ -12,31 +12,31 @@ const pricingFaqData = [
     id: "item-1",
     question: "What is the cost of the free plan?",
     answer:
-      "Our free plan is completely free, with no monthly or annual charges. It's a great way to get started and explore our basic features.",
+      "Our free plan is completely free, with no monthly or annual charges. It includes voice conversations with Gemini AI and basic features to get you started.",
   },
   {
     id: "item-2",
-    question: "How much does the Basic Monthly plan cost?",
+    question: "How much does the Pro plan cost?",
     answer:
-      "The Basic Monthly plan is priced at $15 per month. It provides access to our core features and is billed on a monthly basis.",
+      "The Pro plan is priced at $15 per month or $144 per year (20% discount). It includes voice conversations plus video sharing with camera access.",
   },
   {
     id: "item-3",
-    question: "What is the price of the Pro Monthly plan?",
+    question: "What is the price of the Business plan?",
     answer:
-      "The Pro Monthly plan is available for $25 per month. It offers advanced features and is billed on a monthly basis for added flexibility.",
+      "The Business plan is available for $25 per month or $240 per year (20% discount). It offers all features including voice, video, and screen sharing capabilities.",
   },
   {
     id: "item-4",
     question: "Do you offer any annual subscription plans?",
     answer:
-      "Yes, we offer annual subscription plans for even more savings. The Basic Annual plan is $144 per year, and the Pro Annual plan is $300 per year.",
+      "Yes, we offer annual subscription plans with 20% savings. The Pro Annual plan is $144 per year, and the Business Annual plan is $240 per year.",
   },
   {
     id: "item-5",
-    question: "Is there a trial period for the paid plans?",
+    question: "What's the difference between voice, video, and screen sharing?",
     answer:
-      "We offer a 14-day free trial for both the Pro Monthly and Pro Annual plans. It's a great way to experience all the features before committing to a paid subscription.",
+      "Voice allows audio conversations with Gemini AI. Video sharing lets you share your camera feed for visual interactions. Screen sharing enables you to share your entire screen for collaborative work and assistance.",
   },
 ];
 

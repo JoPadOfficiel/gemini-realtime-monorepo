@@ -23,7 +23,7 @@ export function ComparePlans() {
       <HeaderSection
         label="Plans"
         title="Compare Our Plans"
-        subtitle="Find the perfect plan tailored for your business needs!"
+        subtitle="Find the perfect plan tailored for your AI collaboration needs!"
       />
 
       <div className="my-10 overflow-x-scroll max-lg:mx-[-0.8rem] md:overflow-x-visible">

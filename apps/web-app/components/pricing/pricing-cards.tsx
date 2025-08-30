@@ -98,7 +98,7 @@ export function PricingCards({ userId, subscriptionPlan }: PricingCardsProps) {
           </ul>
 
           {userId && subscriptionPlan ? (
-            offer.title === "Starter" ? (
+            offer.title === "Free" ? (
               <Link
                 href="/dashboard"
                 className={cn(
@@ -138,7 +138,7 @@ export function PricingCards({ userId, subscriptionPlan }: PricingCardsProps) {
   return (
     <MaxWidthWrapper>
       <section className="flex flex-col items-center text-center">
-        <HeaderSection label="Pricing" title="Start at full speed !" />
+        <HeaderSection label="Pricing" title="Choose Your AI Collaboration Plan" />
 
         <div className="mb-4 mt-10 flex items-center gap-5">
           <ToggleGroup
@@ -176,11 +176,11 @@ export function PricingCards({ userId, subscriptionPlan }: PricingCardsProps) {
           Email{" "}
           <a
             className="font-medium text-primary hover:underline"
-            href="mailto:support@saas-starter.com"
+            href="mailto:support@arkely.com"
           >
-            support@saas-starter.com
+            support@arkely.com
           </a>{" "}
-          for to contact our support team.
+          to contact our support team.
           <br />
           <strong>
             You can test the subscriptions and won&apos;t be charged.

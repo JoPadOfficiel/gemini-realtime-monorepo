@@ -8,7 +8,7 @@ export default function Loading() {
       <MaxWidthWrapper>
         <section className="flex flex-col items-center">
           <div className="mx-auto flex w-full flex-col items-center gap-5">
-            <HeaderSection label="Pricing" title="Start at full speed !" />
+            <HeaderSection label="Pricing" title="Choose Your AI Collaboration Plan" />
             <Skeleton className="mb-3 mt-5 h-8 w-1/5 rounded-full" />
           </div>
 
