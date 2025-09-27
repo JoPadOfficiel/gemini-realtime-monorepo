@@ -219,3 +219,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Documentation**: Check the docs folder for detailed guides
 - **Issues**: Report bugs and request features via GitHub Issues
 - **Discussions**: Join community discussions on GitHub Discussions
+
+## Star History
+
+<a href="https://www.star-history.com/#jopadofficiel/gemini-realtime-monorepo&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=jopadofficiel/gemini-realtime-monorepo&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=jopadofficiel/gemini-realtime-monorepo&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=jopadofficiel/gemini-realtime-monorepo&type=Date" />
+ </picture>
+</a>
