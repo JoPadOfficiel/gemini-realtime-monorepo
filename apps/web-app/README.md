@@ -1,132 +1,213 @@
-<a href="https://next-saas-stripe-starter.vercel.app">
-  <img alt="SaaS Starter" src="public/_static/og.jpg">
-  <h1 align="center">Next SaaS Stripe Starter</h1>
-</a>
+# Gemini Realtime Web App
 
-<p align="center">
-  Start at full speed with SaaS Starter !
-</p>
+A complete Next.js 15 SaaS application that provides an intuitive interface for testing and demonstrating Google's Gemini Live API capabilities. This application features user authentication, subscription management, and seamless integration with the Gemini multimodal backend.
 
-<p align="center">
-  <a href="https://twitter.com/miickasmt">
-    <img src="https://img.shields.io/twitter/follow/miickasmt?style=flat&label=miickasmt&logo=twitter&color=0bf&logoColor=fff" alt="Mickasmt Twitter follower count" />
-  </a>
-</p>
+## Overview
 
-<p align="center">
-  <a href="#introduction"><strong>Introduction</strong></a> ·
-  <a href="#installation"><strong>Installation</strong></a> ·
-  <a href="#tech-stack--features"><strong>Tech Stack + Features</strong></a> ·
-  <a href="#author"><strong>Author</strong></a> ·
-  <a href="#credits"><strong>Credits</strong></a>
-</p>
-<br/>
+This web application serves as the frontend for the Gemini Realtime Monorepo, providing users with a comprehensive SaaS platform to interact with Google's Gemini Live API. It includes everything needed for a production-ready SaaS application: authentication, payments, user management, and a beautiful UI.
 
-## Introduction
+### Key Features
 
-Empower your next project with the stack of Next.js 15, Prisma, Neon, Auth.js v5, Resend, React Email, Shadcn/ui, and Stripe.
-<br/>
-All seamlessly integrated with the SaaS Starter to accelerate your development and saas journey.
+- **🔐 Authentication**: Complete auth system with Google/GitHub OAuth via NextAuth.js v5
+- **💳 Subscription Management**: Stripe integration with multiple pricing tiers
+- **📧 Email System**: Transactional emails with Resend and React Email
+- **🎨 Modern UI**: Beautiful interface built with Shadcn/ui and Tailwind CSS
+- **📊 Admin Dashboard**: Comprehensive admin panel for user and subscription management
+- **🔗 Backend Integration**: Seamless connection to the Gemini multimodal backend
+- **📱 Responsive Design**: Optimized for desktop and mobile devices
 
 ## Installation
 
-For detailed setup instructions, see our [Installation Guide](docs/getting-started/installation.md).
+### Prerequisites
 
-Quick start:
+- Node.js 18+ and pnpm
+- PostgreSQL database (Neon, Supabase, or local)
+- Google Gemini API key
+- Stripe account (for payments)
+- Resend account (for emails)
+- OAuth apps (Google/GitHub)
+
+### Quick Start
+
+1. **Navigate to the web app directory**
+   ```bash
+   cd apps/web-app
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. **Configure your `.env.local` file** with your API keys and credentials:
+   ```bash
+   # Database
+   DATABASE_URL="your-postgresql-connection-string"
+
+   # Authentication
+   AUTH_SECRET="your-auth-secret"
+   GOOGLE_CLIENT_ID="your-google-client-id"
+   GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+   # Stripe
+   STRIPE_API_KEY="your-stripe-secret-key"
+   STRIPE_WEBHOOK_SECRET="your-webhook-secret"
+
+   # Email
+   RESEND_API_KEY="your-resend-api-key"
+
+   # Backend Integration
+   NEXT_PUBLIC_GEMINI_BACKEND_URL="http://localhost:8000"
+   ```
+
+5. **Set up the database**
+   ```bash
+   pnpm db:generate
+   pnpm db:push
+   ```
+
+6. **Start the development server**
+   ```bash
+   pnpm dev
+   ```
+
+The application will be available at `http://localhost:3000`.
+
+### Detailed Setup
+
+For comprehensive setup instructions including OAuth configuration, Stripe setup, and deployment, see our [Deployment Guide](../../docs/DEPLOYMENT.md).
+
+## Architecture
+
+The web application follows a modern Next.js 15 architecture with the App Router:
+
+```
+apps/web-app/
+├── app/                    # App Router pages and layouts
+│   ├── (auth)/            # Authentication pages
+│   ├── (dashboard)/       # Protected dashboard pages
+│   ├── admin/             # Admin panel
+│   └── api/               # API routes
+├── components/            # Reusable UI components
+├── lib/                   # Utility functions and configurations
+├── prisma/               # Database schema and migrations
+├── public/               # Static assets
+└── styles/               # Global styles
+```
+
+## Features
+
+### Authentication & User Management
+- **OAuth Integration**: Google and GitHub sign-in
+- **Session Management**: Secure session handling with NextAuth.js v5
+- **User Profiles**: Complete user profile management
+- **Admin Panel**: User management and analytics dashboard
+
+### Subscription & Payments
+- **Stripe Integration**: Complete payment processing
+- **Multiple Tiers**: Pro and Business subscription plans
+- **Billing Management**: Customer portal and invoice handling
+- **Webhook Processing**: Secure webhook handling for subscription events
+
+### Backend Integration
+- **Gemini API**: Seamless connection to the Gemini multimodal backend
+- **Real-time Communication**: WebSocket support for live conversations
+- **Session Management**: Multi-user session handling
+- **Usage Tracking**: Monitor API usage and costs
+
+### UI/UX
+- **Modern Design**: Clean, professional interface
+- **Responsive Layout**: Optimized for all device sizes
+- **Dark/Light Mode**: Theme switching support
+- **Accessibility**: WCAG compliant components
+
+## Tech Stack
+
+### Core Framework
+- **[Next.js 15](https://nextjs.org/)** - React framework with App Router
+- **[TypeScript](https://www.typescriptlang.org/)** - Type-safe development
+- **[React 18](https://react.dev/)** - Latest React features
+
+### Authentication & Database
+- **[NextAuth.js v5](https://authjs.dev/)** - Complete authentication solution
+- **[Prisma](https://www.prisma.io/)** - Type-safe database ORM
+- **[PostgreSQL](https://www.postgresql.org/)** - Robust relational database
+
+### Payments & Email
+- **[Stripe](https://stripe.com/)** - Payment processing and subscriptions
+- **[Resend](https://resend.com/)** - Transactional email service
+- **[React Email](https://react.email/)** - Email template framework
+
+### UI & Styling
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
+- **[Shadcn/ui](https://ui.shadcn.com/)** - High-quality React components
+- **[Framer Motion](https://framer.com/motion)** - Animation library
+- **[Lucide Icons](https://lucide.dev/)** - Beautiful icon library
+
+### Development & Deployment
+- **[Vercel](https://vercel.com/)** - Deployment and hosting platform
+- **[ESLint](https://eslint.org/)** - Code linting and formatting
+- **[Prettier](https://prettier.io/)** - Code formatting
+- **[Husky](https://typicode.github.io/husky/)** - Git hooks
+
+## Available Scripts
 
 ```bash
-mkdir my-saas-project
-cd my-saas-project
-pnpm install
-cp .env.example .env.local
-# Configure your environment variables
-pnpm db:generate && pnpm db:push
-pnpm dev
+# Development
+pnpm dev              # Start development server
+pnpm build            # Build for production
+pnpm start            # Start production server
+
+# Database
+pnpm db:generate      # Generate Prisma client
+pnpm db:push          # Push schema to database
+pnpm db:studio        # Open Prisma Studio
+pnpm db:seed          # Seed database with sample data
+
+# Code Quality
+pnpm lint             # Run ESLint
+pnpm type-check       # Run TypeScript checks
+pnpm test             # Run tests
+
+# Email Development
+pnpm email:dev        # Start email development server
 ```
 
-### Steps
+## Environment Variables
 
-1. Install dependencies using pnpm:
+See [.env.example](.env.example) for a complete list of required environment variables with detailed documentation.
 
-```sh
-pnpm install
-```
+## Deployment
 
-2. Copy `.env.example` to `.env.local` and update the variables.
+### Vercel (Recommended)
 
-```sh
-cp .env.example .env.local
-```
+1. **Connect your repository** to Vercel
+2. **Configure environment variables** in the Vercel dashboard
+3. **Deploy** - Vercel will automatically build and deploy your app
 
-3. Start the development server:
+### Manual Deployment
 
-```sh
-pnpm run dev
-```
+1. **Build the application**
+   ```bash
+   pnpm build
+   ```
 
-> [!NOTE]  
-> I use [npm-check-updates](https://www.npmjs.com/package/npm-check-updates) package for update this project.
->
-> Use this command for update your project: `ncu -i --format group`
+2. **Start the production server**
+   ```bash
+   pnpm start
+   ```
 
-## Roadmap
-- [ ] Upgrade eslint to v9
-- [ ] Add resend for success subscriptions
+For detailed deployment instructions, see the [Deployment Guide](../../docs/DEPLOYMENT.md).
 
-## Tech Stack + Features
+## Contributing
 
-https://github.com/mickasmt/next-saas-stripe-starter/assets/62285783/828a4e0f-30e3-4cfe-96ff-4dfd9cd55124
+Please read our [Contributing Guidelines](../../CONTRIBUTING.md) for details on how to contribute to this project.
 
-### Frameworks
+## License
 
-- [Next.js](https://nextjs.org/) – React framework for building performant apps with the best developer experience
-- [Auth.js](https://authjs.dev/) – Handle user authentication with ease with providers like Google, Twitter, GitHub, etc.
-- [Prisma](https://www.prisma.io/) – Typescript-first ORM for Node.js
-- [React Email](https://react.email/) – Versatile email framework for efficient and flexible email development
-
-### Platforms
-
-- [Vercel](https://vercel.com/) – Easily preview & deploy changes with git
-- [Resend](https://resend.com/) – A powerful email framework for streamlined email development
-- [Neon](https://neon.tech/) – Serverless Postgres with autoscaling, branching, bottomless storage and generous free tier.
-
-### UI
-
-- [Tailwind CSS](https://tailwindcss.com/) – Utility-first CSS framework for rapid UI development
-- [Shadcn/ui](https://ui.shadcn.com/) – Re-usable components built using Radix UI and Tailwind CSS
-- [Framer Motion](https://framer.com/motion) – Motion library for React to animate components with ease
-- [Lucide](https://lucide.dev/) – Beautifully simple, pixel-perfect icons
-- [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) – Optimize custom fonts and remove external network requests for improved performance
-- [`ImageResponse`](https://nextjs.org/docs/app/api-reference/functions/image-response) – Generate dynamic Open Graph images at the edge
-
-### Hooks and Utilities
-
-- `useIntersectionObserver` – React hook to observe when an element enters or leaves the viewport
-- `useLocalStorage` – Persist data in the browser's local storage
-- `useScroll` – React hook to observe scroll position ([example](https://github.com/mickasmt/precedent/blob/main/components/layout/navbar.tsx#L12))
-- `nFormatter` – Format numbers with suffixes like `1.2k` or `1.2M`
-- `capitalize` – Capitalize the first letter of a string
-- `truncate` – Truncate a string to a specified length
-- [`use-debounce`](https://www.npmjs.com/package/use-debounce) – Debounce a function call / state update
-
-### Code Quality
-
-- [TypeScript](https://www.typescriptlang.org/) – Static type checker for end-to-end typesafety
-- [Prettier](https://prettier.io/) – Opinionated code formatter for consistent code style
-- [ESLint](https://eslint.org/) – Pluggable linter for Next.js and TypeScript
-
-### Miscellaneous
-
-- [Vercel Analytics](https://vercel.com/analytics) – Track unique visitors, pageviews, and more in a privacy-friendly way
-
-## Author
-
-Created by [@miickasmt](https://twitter.com/miickasmt) in 2023, released under the [MIT license](https://github.com/shadcn/taxonomy/blob/main/LICENSE.md).
-
-## Credits
-
-This project was inspired by shadcn's [Taxonomy](https://github.com/shadcn-ui/taxonomy), Steven Tey’s [Precedent](https://github.com/steven-tey/precedent), and Antonio Erdeljac's [Next 13 AI SaaS](https://github.com/AntonioErdeljac/next13-ai-saas).
-
-- Shadcn ([@shadcn](https://twitter.com/shadcn))
-- Steven Tey ([@steventey](https://twitter.com/steventey))
-- Antonio Erdeljac ([@YTCodeAntonio](https://twitter.com/AntonioErdeljac))
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.

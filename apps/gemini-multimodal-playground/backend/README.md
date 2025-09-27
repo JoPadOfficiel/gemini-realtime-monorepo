@@ -1,153 +1,225 @@
 # Gemini Live Backend API
 
-FastAPI backend for real-time multimodal AI conversations using Google's Gemini Live API.
+A high-performance FastAPI backend that provides real-time multimodal AI conversations using Google's Gemini Live API. This backend serves as the core engine for the Gemini Realtime Monorepo, handling WebSocket connections, memory management, and session persistence.
 
-## Features
+## Overview
 
-- Real-time WebSocket communication (audio, text, image)
-- Long-term memory management with PostgreSQL
-- Session management with resumption capabilities
-- Token usage tracking across different models
-- Asynchronous operations for optimal performance
-- Automatic OpenAPI documentation generation
+This backend application enables real-time communication with Google's Gemini Live API, supporting voice, text, and image interactions. It's designed to handle multiple concurrent users with persistent memory and comprehensive session management.
 
-## Production Deployment
+### Key Features
 
-Pour le déploiement en production avec HTTPS, voir [DEPLOYMENT.md](./DEPLOYMENT.md).
+- **🔄 Real-time Communication**: WebSocket connections for live audio/text/image streaming
+- **🧠 Memory Management**: Long-term conversation memory using Mem0 and PostgreSQL
+- **👥 Multi-user Sessions**: Concurrent session handling with user isolation
+- **📊 Usage Tracking**: Comprehensive token and cost monitoring
+- **⚡ High Performance**: Asynchronous operations with FastAPI
+- **📚 Auto Documentation**: OpenAPI/Swagger documentation generation
+- **🔒 Security**: CORS configuration and secure WebSocket handling
+
+## Architecture
+
+```
+backend/
+├── main.py                 # FastAPI application entry point
+├── websocket_handler.py    # WebSocket connection management
+├── memory_manager.py       # Mem0 integration for conversation memory
+├── session_manager.py      # User session handling
+├── models/                 # Pydantic models and schemas
+├── utils/                  # Utility functions
+├── tests/                  # Test suite
+└── requirements.txt        # Python dependencies
+```
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Prerequisites
 
-```bash
-pip install -r requirements.txt
-```
+- Python 3.11+
+- PostgreSQL database
+- Google Gemini API key
+- Mem0 API key (optional, for enhanced memory)
 
-### 2. Environment Setup
+### Installation
 
-Create `.env` file:
-```
-GEMINI_API_KEY=your_gemini_api_key_here
-```
+1. **Navigate to the backend directory**
+   ```bash
+   cd apps/gemini-multimodal-playground/backend
+   ```
 
-### 3. Start Server
+2. **Create a virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### 4. Access Documentation
+4. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+
+5. **Configure your `.env` file**:
+   ```bash
+   # Required
+   GEMINI_API_KEY=your_gemini_api_key_here
+
+   # Optional (for enhanced memory)
+   MEM0_API_KEY=your_mem0_api_key_here
+
+   # Database (optional, uses in-memory if not provided)
+   DATABASE_URL=postgresql://username:password@host:port/database
+
+   # Server Configuration
+   HOST=0.0.0.0
+   PORT=8000
+   DEBUG=true
+   CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+   ```
+
+6. **Start the development server**
+   ```bash
+   python main.py
+   ```
+
+The API will be available at `http://localhost:8000`.
+
+### API Documentation
+
+Once the server is running, you can access:
 
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI JSON**: http://localhost:8000/openapi.json
 
-## API Documentation
-
-### Generate Documentation
-
-```bash
-# Generate OpenAPI specification
-python generate_openapi.py --validate
-
-# Generate formatted version
-python generate_openapi.py --pretty --validate
-```
-
-### Documentation Files
-
-Generated files are stored in `docs/`:
-- `openapi.json` - Compact specification
-- `openapi-pretty.json` - Formatted specification
-
 ## API Endpoints
 
-### Health & Models
-- `GET /health` - Health check
-- `GET /model-limits/{model_name}` - Model rate limits
+### Health & System
+- `GET /health` - Health check and system status
+- `GET /model-limits/{model_name}` - Get model rate limits and capabilities
 
 ### Memory Management
-- `POST /api/memory/query` - Query conversation memory
-- `POST /api/memory/add` - Add conversation to memory
+- `POST /api/memory/query` - Query conversation memory for context
+- `POST /api/memory/add` - Add conversation to long-term memory
 - `DELETE /api/memory/{session_id}` - Clear session memory
-
-### Asynchronous Operations
-- `POST /api/memory/save-async` - Queue memory save
-- `POST /api/memory/query-async` - Queue memory query
-- `GET /api/memory/task/{task_id}` - Get task status
-
-### Token Usage
-- `GET /api/tokens/usage/{session_id}` - Get token usage
+- `POST /api/memory/save-async` - Queue memory save operation
+- `POST /api/memory/query-async` - Queue memory query operation
+- `GET /api/memory/task/{task_id}` - Get async task status
 
 ### Session Management
-- `GET /api/sessions` - List active sessions
-- `GET /api/sessions/{session_id}/status` - Session status
-- `GET /api/sessions/{session_id}` - Session info
+- `GET /api/sessions` - List all active sessions
+- `GET /api/sessions/{session_id}/status` - Get session status
+- `GET /api/sessions/{session_id}` - Get detailed session information
 
-### WebSocket
-- `WS /ws/{client_id}` - Real-time communication
+### Token Usage & Analytics
+- `GET /api/tokens/usage/{session_id}` - Get token usage statistics
+
+### Real-time Communication
+- `WS /ws/{client_id}` - WebSocket endpoint for real-time multimodal communication
+
+## WebSocket Protocol
+
+The WebSocket connection supports the following message types:
+
+### Client → Server
+```json
+{
+  "type": "audio_chunk",
+  "data": "base64_encoded_audio",
+  "session_id": "unique_session_id"
+}
+```
+
+```json
+{
+  "type": "text_message",
+  "content": "User message text",
+  "session_id": "unique_session_id"
+}
+```
+
+### Server → Client
+```json
+{
+  "type": "audio_response",
+  "data": "base64_encoded_audio",
+  "session_id": "unique_session_id"
+}
+```
+
+```json
+{
+  "type": "text_response",
+  "content": "AI response text",
+  "session_id": "unique_session_id"
+}
+```
 
 ## Development
 
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install pytest pytest-asyncio
+
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest tests/ --cov=. --cov-report=html
+```
+
 ### Code Quality
 
-The FastAPI application includes:
-- Comprehensive type hints with Pydantic models
-- Detailed endpoint descriptions and examples
-- Organized API tags for better documentation structure
-- Automatic request/response validation
+```bash
+# Format code
+black .
 
-### CI/CD
+# Lint code
+flake8 .
 
-GitHub Actions workflow automatically:
-- Generates OpenAPI documentation on code changes
-- Validates the generated specification
-- Creates artifacts for deployment
-
-## Architecture
-
-- **FastAPI**: Web framework with automatic OpenAPI generation
-- **WebSocket**: Real-time bidirectional communication
-- **PostgreSQL**: Persistent memory storage
-- **Mem0**: Memory management integration
-- **Pydantic**: Data validation and serialization
-
-## Configuration
-
-The FastAPI app is configured with:
-- Comprehensive metadata (title, description, version)
-- Contact and license information
-- Organized tags for endpoint grouping
-- CORS middleware for cross-origin requests
-
-## File Structure
-
-```
-backend/
-├── main.py                 # FastAPI application
-├── generate_openapi.py     # Documentation generator
-├── simple_memory.py        # Memory management
-├── async_memory.py         # Async memory operations
-├── init_db.py             # Database initialization
-├── requirements.txt        # Python dependencies
-└── docs/
-    ├── openapi.json       # OpenAPI specification
-    ├── openapi-pretty.json # Formatted specification
-    └── README.md          # Documentation guide
+# Type checking
+mypy .
 ```
 
-## Makefile Justification
+### Environment Variables
 
-**Note**: The original implementation included a Makefile, but it has been removed for the following reasons:
+See [.env.example](.env.example) for a complete list of configuration options.
 
-1. **Unnecessary Complexity**: For a Python project with FastAPI, standard Python tools (pip, uvicorn, python) are sufficient
-2. **Platform Dependency**: Makefiles add a dependency on make, which isn't always available on all development environments
-3. **Simple Commands**: The project's commands are straightforward enough to run directly
-4. **Standard Practice**: Python projects typically use setup.py, pyproject.toml, or direct command execution rather than Makefiles
+## Production Deployment
 
-Instead, use these direct commands:
-- `pip install -r requirements.txt` (install dependencies)
-- `python generate_openapi.py` (generate docs)
-- `uvicorn main:app --reload` (start server)
+### Docker Deployment
 
-This approach is simpler, more portable, and follows Python ecosystem conventions.
+```bash
+# Build image
+docker build -t gemini-backend .
+
+# Run container
+docker run -p 8000:8000 --env-file .env gemini-backend
+```
+
+### VPS Deployment
+
+For detailed production deployment instructions, see the [Deployment Guide](../../../docs/DEPLOYMENT.md).
+
+## Technology Stack
+
+- **[FastAPI](https://fastapi.tiangolo.com/)** - Modern Python web framework
+- **[WebSockets](https://websockets.readthedocs.io/)** - Real-time communication
+- **[Google Gemini Live API](https://ai.google.dev/)** - Multimodal AI capabilities
+- **[Mem0](https://mem0.ai/)** - Advanced memory management
+- **[PostgreSQL](https://www.postgresql.org/)** - Persistent data storage
+- **[Pydantic](https://pydantic.dev/)** - Data validation and serialization
+- **[Uvicorn](https://www.uvicorn.org/)** - ASGI server
+
+## Contributing
+
+Please read our [Contributing Guidelines](../../../CONTRIBUTING.md) for details on how to contribute to this project.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](../../../LICENSE) file for details.
