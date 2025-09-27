@@ -10,25 +10,25 @@ export async function GET(
     const resolvedParams = await params;
     const assetPath = resolvedParams.asset.join("/");
 
-    // Sécurité : vérifier que le fichier demandé est autorisé
+    // Security: verify that the requested file is allowed
     const allowedFiles = [
       "swagger-ui.css",
       "swagger-ui-bundle.js",
       "swagger-ui-standalone-preset.js"
     ];
-    
+
     const fileName = assetPath.split("/").pop();
     if (!fileName || !allowedFiles.includes(fileName)) {
       return new Response("File not found", { status: 404 });
     }
-    
-    // Chemin vers les assets de swagger-ui-dist
+
+    // Path to swagger-ui-dist assets
     const swaggerUiPath = join(process.cwd(), "node_modules", "swagger-ui-dist", fileName);
-    
-    // Lire le fichier
+
+    // Read the file
     const fileContent = readFileSync(swaggerUiPath);
-    
-    // Déterminer le type de contenu
+
+    // Determine content type
     let contentType = "text/plain";
     if (fileName.endsWith(".css")) {
       contentType = "text/css";
@@ -39,7 +39,7 @@ export async function GET(
     return new Response(fileContent, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000", // Cache pendant 1 an
+        "Cache-Control": "public, max-age=31536000", // Cache for 1 year
       },
     });
   } catch (error) {

@@ -10,6 +10,10 @@ export const docsConfig: DocsConfig = {
       title: "Guides",
       href: "/guides",
     },
+    {
+      title: "API Documentation",
+      href: "/api/swagger",
+    },
   ],
   sidebarNav: [
     {
@@ -22,6 +26,10 @@ export const docsConfig: DocsConfig = {
         {
           title: "Installation",
           href: "/docs/installation",
+        },
+        {
+          title: "API Documentation",
+          href: "/api/swagger",
         },
       ],
     },
