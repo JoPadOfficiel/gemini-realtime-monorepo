@@ -1,64 +1,64 @@
-# Documentation Gemini Live SaaS
+# Gemini Live SaaS Documentation
 
-## Vue d'ensemble
+## Overview
 
-Cette documentation couvre l'architecture complète du projet Gemini Live SaaS, incluant les optimisations de performance et les améliorations de scalabilité.
+This documentation covers the complete architecture of the Gemini Live SaaS project, including performance optimizations and scalability improvements.
 
-## Structure de la Documentation
+## Documentation Structure
 
-### 📋 Documents Disponibles
+### 📋 Available Documents
 
-1. **[Optimisations de Scalabilité](./optimisations-scalabilite.md)** 
-   - Résolution des goulots d'étranglement de performance
-   - Implémentation de la queue asynchrone Mem0
-   - Élimination des blocages UI (200-500ms → <1ms)
+1. **[Scalability Optimizations](./scalability-optimizations.md)**
+   - Performance bottleneck resolution
+   - Mem0 asynchronous queue implementation
+   - UI blocking elimination (200-500ms → <1ms)
 
-## Architecture du Projet
+## Project Architecture
 
-### 🏗️ Architecture Hybride
+### 🏗️ Hybrid Architecture
 
-Le projet utilise une architecture hybride optimisée :
+The project uses an optimized hybrid architecture:
 
-- **WebSocket** : Communications temps réel (audio, vidéo, interruptions)
-- **REST API** : Opérations non-critiques (tokens, sessions, mémoire)
-- **Queue Asynchrone** : Traitement en arrière-plan pour Mem0
+- **WebSocket**: Real-time communications (audio, video, interruptions)
+- **REST API**: Non-critical operations (tokens, sessions, memory)
+- **Asynchronous Queue**: Background processing for Mem0
 
-### 🔧 Composants Principaux
+### 🔧 Main Components
 
 ```
 gemini-realtime-monorepo/
 ├── apps/gemini-multimodal-playground/
 │   ├── backend/
-│   │   ├── main.py              # Serveur FastAPI principal
-│   │   ├── async_memory.py      # Queue asynchrone Mem0
-│   │   └── simple_memory.py     # Gestionnaire mémoire
+│   │   ├── main.py              # Main FastAPI server
+│   │   ├── async_memory.py      # Mem0 asynchronous queue
+│   │   └── simple_memory.py     # Memory manager
 │   └── frontend/
 │       ├── components/
-│       │   └── gemini-playground.tsx  # Interface hybride
+│       │   └── gemini-playground.tsx  # Hybrid interface
 │       └── lib/
 │           └── utils.ts         # GeminiApiService
 └── docs/
-    ├── README.md                # Ce fichier
-    └── optimisations-scalabilite.md  # Optimisations détaillées
+    ├── README.md                # This file
+    └── scalability-optimizations.md  # Detailed optimizations
 ```
 
-## APIs Disponibles
+## Available APIs
 
-### 🔄 APIs REST Synchrones (Compatibilité)
+### 🔄 Synchronous REST APIs (Compatibility)
 
 ```http
-POST /api/memory/add          # Sauvegarde mémoire synchrone
-POST /api/memory/query        # Requête mémoire synchrone
-GET  /api/tokens/usage/{id}   # Usage des tokens
-GET  /api/sessions            # Sessions actives
+POST /api/memory/add          # Synchronous memory save
+POST /api/memory/query        # Synchronous memory query
+GET  /api/tokens/usage/{id}   # Token usage
+GET  /api/sessions            # Active sessions
 ```
 
-### ⚡ APIs REST Asynchrones (Performance Optimisée)
+### ⚡ Asynchronous REST APIs (Performance Optimized)
 
 ```http
-POST /api/memory/save-async   # Sauvegarde mémoire non-bloquante
-POST /api/memory/query-async  # Requête mémoire non-bloquante  
-GET  /api/memory/task/{id}    # Statut des tâches asynchrones
+POST /api/memory/save-async   # Non-blocking memory save
+POST /api/memory/query-async  # Non-blocking memory query
+GET  /api/memory/task/{id}    # Asynchronous task status
 ```
 
 ### 🌐 WebSocket
@@ -67,37 +67,37 @@ GET  /api/memory/task/{id}    # Statut des tâches asynchrones
 ws://localhost:8000/ws/{session_id}
 ```
 
-**Messages supportés :**
-- Audio streaming bidirectionnel
-- Transcriptions en temps réel
-- Interruptions utilisateur
-- Gestion des sessions
+**Supported messages:**
+- Bidirectional audio streaming
+- Real-time transcriptions
+- User interruptions
+- Session management
 
-## Optimisations de Performance
+## Performance Optimizations
 
-### 🚨 Problème Résolu : Blocages UI
+### 🚨 Problem Solved: UI Blocking
 
-**Avant :**
-- Appels Mem0 synchrones bloquant l'interface (200-500ms)
-- Expérience utilisateur saccadée
-- Freezes perceptibles lors des sauvegardes
+**Before:**
+- Synchronous Mem0 calls blocking the interface (200-500ms)
+- Choppy user experience
+- Noticeable freezes during saves
 
-**Après :**
-- Queue asynchrone avec réponse immédiate (<1ms)
-- Interface fluide et responsive
-- Traitement en arrière-plan transparent
+**After:**
+- Asynchronous queue with immediate response (<1ms)
+- Smooth and responsive interface
+- Transparent background processing
 
-### 📊 Métriques d'Amélioration
+### 📊 Improvement Metrics
 
-| Aspect | Avant | Après | Gain |
+| Aspect | Before | After | Gain |
 |--------|-------|-------|------|
-| Temps de réponse UI | 200-500ms | <1ms | **99.8%** |
-| Blocage interface | Oui | Non | **Éliminé** |
-| Throughput mémoire | 1 op/500ms | Illimité | **∞** |
+| UI response time | 200-500ms | <1ms | **99.8%** |
+| Interface blocking | Yes | No | **Eliminated** |
+| Memory throughput | 1 op/500ms | Unlimited | **∞** |
 
-## Installation et Démarrage
+## Installation and Setup
 
-### Prérequis
+### Prerequisites
 
 ```bash
 # Python 3.11+
@@ -113,21 +113,21 @@ pnpm --version
 ### Configuration
 
 ```bash
-# 1. Cloner le repository
+# 1. Clone the repository
 git clone <repository-url>
 cd gemini-realtime-monorepo
 
-# 2. Installer les dépendances Python
+# 2. Install Python dependencies
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 
-# 3. Installer les dépendances Node.js
+# 3. Install Node.js dependencies
 pnpm install
 
-# 4. Configuration environnement
+# 4. Environment configuration
 cp .env.example .env
-# Éditer .env avec vos clés API
+# Edit .env with your API keys
 ```
 
 ### Démarrage
