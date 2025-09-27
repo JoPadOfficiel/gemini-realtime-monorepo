@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: gemini_db
+      POSTGRES_USER: gemini_user
+      POSTGRES_PASSWORD: gemini_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gemini_user -d gemini_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Gemini Backend API
+  backend:
+    build:
+      context: ./apps/gemini-multimodal-playground/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://gemini_user:gemini_password@postgres:5432/gemini_db
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=true
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+    env_file:
+      - ./apps/gemini-multimodal-playground/backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./apps/gemini-multimodal-playground/backend:/app
+    restart: unless-stopped
+
+  # Redis (Optional - for caching)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
